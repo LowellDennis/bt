@@ -9,10 +9,10 @@
 
 * To get the source use:
 ```
-    git clone .../bios-tool.git
+    git clone git@github.com:LowellDennis/bt.git
 ```
 * Make sure the directory where the clone is made is in your path
-* In order to run you will also need to have python installed (at least V2.7)
+* To run you will also need to have Python installed (at least V2.7, but 3+ is suggested)
     * You can get it [here](https://www.python.org/)
 
 ### What does it do? ###
@@ -20,7 +20,7 @@
 BIOS Tool attempts to simplify HPE Server BIOS development.
 
 * Requires minimal setup
-    * Global settings only need to be setup once
+    * Global settings only need to be set once
         * These apply to all BIOS worktrees
     * There are only a few local settings
         * These apply only to the current BIOS worktree
@@ -32,11 +32,11 @@ BIOS Tool attempts to simplify HPE Server BIOS development.
     * Filters out extraneous "unversioned" files in status output
     * Allows source code to be updated easily
     * FUTURE: Assists in committing and "pushing" changes upstream
-* It implements CLEAN, and BUILD
+* It implements simple CLEAN, and BUILD commands
     * Command output is:
         * Automatically captured into log files
         * Output is scrubbed for ERROR and WARNING messages
-            * Only relavant ouput is shown on screen
+            * Only relevant output is shown on the screen
                 * Logfiles can be used if more details are needed
 * Can even send you a text message when the build completes
 
@@ -45,7 +45,7 @@ BIOS Tool attempts to simplify HPE Server BIOS development.
 usage: bt <command> [param1 [param2 [...]]]
   where command is one of:
       attach - Add a BIOS repository to the global repository list
-       build - Build a BIOS for current BIOS worktree
+       build - Build a BIOS for the current BIOS worktree
        clean - Clean current BIOS worktree
       config - Get or set BIOS tool configuration settings
       create - Create a new BIOS worktree
@@ -55,22 +55,24 @@ usage: bt <command> [param1 [param2 [...]]]
         move - Moves a BIOS worktree
         pull - Pull updates from an upstream remote repository into a local repository.
         push - Pushes updates from a local repository to the upstream remote repository
-      select - Select a BIOS repository or list reposititories in the global repository list
+      select - Select a BIOS repository or list repositories in the global repository list
       status - Get VCS status of the current BIOS worktree
       switch - Switch to a different BIOS worktree.
-         top - Change directory to the top of the current BIOS worktree
+         top - Change the directory to the top of the current BIOS worktree
 
-NOTE: command can be abbreviated as afar as it does not conflict with
+NOTE: command can be abbreviated as far as it does not conflict with
       another command abbreviation
 
-For detailed help on a particular command use "bt help <command>"
+For detailed help on a particular command use the "bt help <command>"
 ~~~
 ### How do I get started? ###
 
 Once you have cloned a BIOS repository using 'git clone'
-and have the BIOS tool downloaded somewhere in your in your path this is how you use it!
+and have the BIOS tool downloaded somewhere in your path, this is how you use it!
+
 * CD to the directory where the BIOS source code repo was cloned
-You are now ready attach repositories to the BIOS tool
+
+You are now ready to attach repositories to the BIOS tool
 ~~~
            bt attach
 ~~~
@@ -78,26 +80,26 @@ You are now ready attach repositories to the BIOS tool
 ~~~
             bt create [/repo <repo>] [/commit <commit>] [/branch <branch>] [<path>\]name
 ~~~
-*  repo   Repository from which to create BIOS worktree
-          * (default is currently selected repository)
-*  commit Commit ID from which to start BIOS worktree
-          * (default is HEAD)
-*  branch Branch name for new BIOS worktree
-          * (default creates BIOS worktree as a detached head)
+*  repo: Repository from which to create BIOS worktree
+   * (default is currently selected repository)
+*  commit: Commit ID from which to start BIOS worktree
+   * (default is HEAD)
+*  branch: Branch name for new BIOS worktree
+   * (default creates BIOS worktree as a detached head)
 *  path   Base directory of new BIOS worktree
-          * (default is the parent of directory containing repo)
+   * (default is the parent of the directory containing the repo)
 *  name   Name to be given to the BIOS worktree
-          * (must be appropriate for a directory name)
+   * (must be appropriate for a directory name)
 
 The next thing you will need to do is initialize the tool settings for the worktree.
 ~~~
              cd [<path>\]name
              bt init <platform>
 ~~~
-* platform:   Path to the platform directory
-Note: will attempt to autodectect the CPU vendor and CPU type
-~~~
-If you want to be notified when BIOS build complete.
+* platform: Path to the platform directory
+   * Will attempt to autodetect the CPU vendor and CPU type
+
+If you want to be notified when a BIOS build is completed.
 Do the following
 ~~~
             bt config email <text-email>
@@ -108,7 +110,7 @@ Do the following
 | Alltel            | [insert 10-digit number]@message.alltel.com          |
 | AT&T              | [insert 10-digit number]@txt.att.net                 |
 | Boost Mobile      | [insert 10-digit number]@myboostmobile.com           |
-| Sprint            | [insert 10-digit number]@messaging.sprintpcs.com     |
+| ~~Sprint~~            | ~~[insert 10-digit number]@messaging.sprintpcs.com~~     |
 | T-Mobile          | [insert 10-digit number]@tmomail.net                 |
 | U.S. Cellular     | [insert 10-digit number]@email.uscc.net              |
 | Verizon           | [insert 10-digit number]@vtext.com                   |
@@ -120,10 +122,10 @@ To see the global and local settings for a BIOS source tree
             bt config
 ~~~
 
-* One More Thing: For the email/text notification to work
-    * Outlook and your command shell have to be run at the same privilege level.
-    * If your command shell is run with administrator privileges
-        * Outlook will also have to be run with administrator privileges.
+One More Thing: For the email/text notification to work
+* Outlook and your command shell have to be run at the same privilege level.
+* If your command shell is run with administrator privileges
+   * Outlook will also have to be run with administrator privileges.
 
 ### How to extend ###
 The BIOS tool is easily extended as it is hierarchical by design.
@@ -136,8 +138,8 @@ The main program is 'bt.cmd'
     * 'details.txt'  - a detailed description of what the command does
     * 'needs.vcs'    - (if present) indicates need of vcs services
     * '*command*.py' - the code that carries out the command
-        * Note: the name of the subdirectory and the .py file must be the same (case sensitive)
-        *       the name of the main function in the .py file must also be this name
+        * The name of the subdirectory and the .py file must be the same (case sensitive)
+        * Also, the name of the main function in the .py file must be this name (case sensitive)
     * any other files the command may need
         * For example, filter.txt is used by CLEAN and BUILD to filter out false error messages,
         * 'send.ps1' is used by BUILD to send completion alerts. 
