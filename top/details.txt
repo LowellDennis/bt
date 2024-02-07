@@ -1,0 +1,17 @@
+Usage
+-----
+bios top
+
+Description
+-----------
+Change directory to the top of the BIOS worktree (or repository)
+
+See Also
+--------
+bt attach
+bt create
+bt destroy
+bt detach
+bt select
+bt switch
+

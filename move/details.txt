@@ -1,0 +1,19 @@
+Usage
+-----
+bt move [<destination> [<source>]]
+  destination: Path to which to move the worktree
+               (if destination is a directory, moves source but keeps name
+                otherwise moves source and renames as indicated by destination)
+  source:      Current path of the worktree to be moved
+               (default moves current worktree)
+  NOTE: lists worktrees so shown if no parameters are given
+
+Description
+-----------
+This command moves/renames a BIOS worktree
+
+See Also
+--------
+bt create
+bt destroy
+bt switch

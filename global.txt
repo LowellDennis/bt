@@ -1,0 +1,6 @@
+email
+*last,         automatic
+*repo,         {0} select
+*repositories, {0} attach or {0} detach
+*worktrees,    {0} create or {0} destroy
+*worktree,     {0} switch

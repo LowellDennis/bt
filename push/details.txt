@@ -1,0 +1,17 @@
+Usage
+-----
+bt push [<repo>]
+  repo: repository or worktree on which to perform the push operation
+        (if repo is not given, the current directory is used)
+  Note: This command only works with git repositories and worktrees
+        (For svn repositories use the "svn commit" command)
+
+Description
+-----------
+Pushes updates from a local repository or worktree to its remote location
+
+See Also
+--------
+bt pull
+bt select
+bt switch

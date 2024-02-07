@@ -1,0 +1,20 @@
+Usage
+-----
+bt attach [<path>]
+   path: Path associated with BIOS repository to be attached
+         (defaults to current directory)
+
+Description
+-----------
+Add a BIOS repository to the global repository list.
+
+NOTE: Path must be within an actual BIOS repository
+      (top of tree contians .git or .svn directory)
+
+See Also
+--------
+bt detach
+bt pull
+bt push
+bt select
+bt switch

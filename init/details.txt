@@ -1,0 +1,12 @@
+Usage
+-----
+bt init <name>
+   name: BIOS platform target for current BIOS worktree
+
+Description
+-----------
+Initialize local setting for current BIOS worktree
+
+See Also
+--------
+bt build

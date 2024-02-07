@@ -1,0 +1,22 @@
+Usage
+-----
+bt select [<path>]
+  path: path associated with BIOS repository to be selected
+        (if no path is given, lists the BIOS repositories)
+
+Description
+-----------
+Select a BIOS repository or list reposititories in the global repository list
+NOTE: Path must be within an actual BIOS repository
+      (top of tree contians .git or .svn directory)
+
+See Also
+--------
+bt attach
+bt create
+bt destroy
+bt detach
+bt pull
+bt push
+bt select
+bt switch

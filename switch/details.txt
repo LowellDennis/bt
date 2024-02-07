@@ -1,0 +1,19 @@
+Usage
+-----
+bt switch [<worktree>]
+   worktree:  Path of the worktree or repository to which to switch
+   NOTE: Name of or partial path to a worktree may be used
+         (must not conflict with another BIOS worktree name or path)
+         If worktree is not given shows a list of available worktrees and repositories
+      
+Description
+-----------
+Switch to a different BIOS worktree or repository.
+If no worktree is given a list of available worktrees and repositories is shown
+
+See Also
+--------
+bt attach
+bt detach
+bt create
+bt destroy

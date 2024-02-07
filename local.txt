@@ -1,0 +1,8 @@
+alert
+bmc
+*cpu,      {0} init
+*name,     {0} init
+*platform, {0} init
+release
+*vendor,   {0} init
+warnings

@@ -1,0 +1,29 @@
+Usage
+-----
+bt create [/repo <repo>] [/commit <commit>] [/branch <branch>] [<path>\]name
+   repo   Repository from which to create BIOS worktree
+          (default is currently selected repository)
+   commit Commit ID from which to start BIOS worktree
+          (default is HEAD)
+   branch Branch name for new BIOS worktree
+          (default creates BIOS worktree as a detached head)
+   path   Base directory of new BIOS worktree
+          (default is the parent of directory containing repo)
+   name   Name to be given to the BIOS worktree
+          (must be appropriate for a directory name)
+   NOTE: Options may be abbreviated (e.g /b same as /branch)
+
+Description
+-----------
+This command creates a new BIOS worktree.
+Creates BIOS worktree:
+  from <repo>@<commit>
+  in   <path>\<name>
+  with <branch> as the name for the new branch
+
+See Also
+--------
+bt destroy
+bt push
+bt pull
+bt switch

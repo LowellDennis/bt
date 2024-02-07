@@ -1,0 +1,21 @@
+Usage
+-----
+bt detach [<path>]
+   path:  Path associated with BIOS repository to be detached
+          (defaults to current directory)
+
+Description
+-----------
+Remove a BIOS repository from the global repository list.
+
+NOTE: Path must be within an actual BIOS repository
+      (top of tree contians .git or .svn directory)
+      Does not delete the repository from the disk.
+
+See Also
+--------
+bt attach
+bt pull
+bt push
+bt select
+bt switch

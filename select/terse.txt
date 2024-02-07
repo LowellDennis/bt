@@ -1,0 +1,1 @@
+Select a BIOS repository or list reposititories in the global repository list

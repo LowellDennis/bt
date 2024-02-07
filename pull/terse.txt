@@ -1,0 +1,1 @@
+Pulls updates from its remote location into a local repository or worktree.
