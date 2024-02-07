@@ -1,4 +1,4 @@
-![BIOS Tool Icon]
+![BIOS Tool Image](https://github.com/LowellDennis/bt/blob/main/BiosTool.jpg)
 
 ### What is this repository for? ###
 
