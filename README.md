@@ -94,10 +94,12 @@ You are now ready to attach repositories to the BIOS tool
 The next thing you will need to do is initialize the tool settings for the worktree.
 ~~~
              cd [<path>\]name
-             bt init <platform>
+             bt init <name>
 ~~~
-* platform: Path to the platform directory
-   * Will attempt to autodetect the CPU vendor and CPU type
+* name: BIOS platform name for current BIOS worktree
+   * This is something like U66, A55, or R13
+   * Will attempt to autodetect platform directory, CPU name and CPU vendor
+   * It will also initialize alert, release, and warnings to off
 
 If you want to be notified when a BIOS build is completed.
 Do the following

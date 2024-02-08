@@ -1,12 +1,14 @@
 Usage
 -----
 bt init <name>
-   name: BIOS platform target for current BIOS worktree
+   name: BIOS platform name for current BIOS worktree
          (This is something like U66, A55, or R13)
 
 Description
 -----------
 Initialize local setting for current BIOS worktree
+Will attempt to autodetect platform directory, CPU name and CPU vendor
+Note: alert, release, and warnings are set to off
 
 See Also
 --------
