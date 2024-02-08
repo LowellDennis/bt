@@ -12,6 +12,7 @@ __pycache__/
 # Code that is not ready yet *
 ##############################
 .not_ready/
+.vscode/
 
 # Packages #
 ############
