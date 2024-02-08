@@ -2,6 +2,7 @@ Usage
 -----
 bt init <name>
    name: BIOS platform target for current BIOS worktree
+         (This is something like U66, A55, or R13)
 
 Description
 -----------

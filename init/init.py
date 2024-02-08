@@ -158,17 +158,11 @@ def init():
   platform = os.path.relpath(platform, worktree)
 
   # Save platform and CPU information
-  data.lcl.SetItem('platform', platform)
-  data.lcl.SetItem('vendor', vendor)
-  data.lcl.SetItem('cpu',   cpu)
-  print('  {0:>6}.{1:<8} = "{2}"'.format('local', 'platform', platform))
-  print('  {0:>6}.{1:<8} = "{2}"'.format('local', 'vendor',   vendor))
-  print('  {0:>6}.{1:<8} = "{2}"'.format('local', 'cpu',      cpu))
+  for name, item in [('platform', platform), ('vendor', vendor), ('cpu', cpu)]:
+    data.lcl.SetItem(name, item)
+    print('  {0:>6}.{1:<8} = "{2}"'.format('local', name, item))
 
   # Initialize other items
-  data.lcl.SetItem('alert',    "FALSE")
-  data.lcl.SetItem('release',  "FALSE")
-  data.lcl.SetItem('warnings', "FALSE")
-  print('  {0:>6}.{1:<8} = "{2}"'.format('local', 'alert',    "FALSE"))
-  print('  {0:>6}.{1:<8} = "{2}"'.format('local', 'release',  "FALSE"))
-  print('  {0:>6}.{1:<8} = "{2}"'.format('local', 'warmings', "FALSE"))
+  for name in ['alert', 'release', 'warnings']:
+    data.lcl.SetItem(name, 'off')
+    print('  {0:>6}.{1:<8} = "{2}"'.format('local', name, 'off'))
