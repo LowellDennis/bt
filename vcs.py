@@ -822,8 +822,8 @@ def SetWorktree(worktree):
   data.gbl.worktree = worktree
   data.info         = __FindVCS(data.gbl.repos + data.gbl.worktrees, worktree)
   data.gbl.vcs      = gitVCS(worktree) if data.info.VCS().Name() == 'git' else svnVCS(worktree) # Initialize VCS object
-  lclDir            = os.path.join(data.gbl.worktree, '.bt')    # Initialize
-  data.lcl          = data.BIOSSettings(lclDir, 'local.txt')    #   local settings
+  lclDir            = os.path.join(data.gbl.worktree, data.SETTINGS_DIRECTORY)                  # Initialize
+  data.lcl          = data.BIOSSettings(lclDir, 'local.txt')                                    #   local settings
   # Handle auto-repo-selection
   repo = worktree if data.info.IsRepo() else GetRepoFromWorktree(worktree)
   repo = FixPath(repo.lower())
