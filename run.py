@@ -76,7 +76,7 @@ def FilterCommand(command, filter = NoFilter, directory = None, log=None):
     if not line and process.poll() is not None: break
     if line:
       filter(line)
-      if log: logFile.write(line)
+      if log: logFile.write(line.decode('utf-8') if type(line) is bytes else line)
   returncode = process.poll()
   # Close log file
   if log: logFile.close()
@@ -125,11 +125,10 @@ def DoCommand(operation, completion, command, directory = None):
     print('=== {0} ... Please be patient this could take a while ... ==='.format(operation))
     print(equalLine)
     print('Command: {0}'.format(command))
-    result = run(command, cwd=directory)
+    result = run(command, cwd=directory).returncode
     print('')
-    print(result)
-    msg   = completion + ' ' + ('FAILED!' if (result.returncode) else 'Passed!')
+    msg   = completion + ' ' + ('FAILED!' if (result) else 'Passed!')
     Announce(msg, '!' if (result) else '*')
     return result
   except KeyboardInterrupt:
-    pass
+    return 1
