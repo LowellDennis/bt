@@ -11,6 +11,9 @@ from   run        import FilterCommand
 from   misc       import FixPath, FixStr
 from   vcs        import AutoSelectRepo, SetWorktree, FindWorkTreeFromPartialPath
 
+# Global constants
+SETTINGS_DIRECTORY = '.bt'
+
 # Global variables
 gbl    = None       # For holding BIOS tool global settings
 lcl    = None       # For holding BIOS tool local  settings
@@ -137,7 +140,7 @@ def InitializeSettings():
     # DOES NOT RETURN
 
   # Load global settings
-  data.gbl          = data.BIOSSettings(os.path.join(home, '.bt'), 'global.txt')
+  data.gbl          = data.BIOSSettings(os.path.join(home, SETTINGS_DIRECTORY), 'global.txt')
   data.gbl.cmdDir   = os.path.dirname(os.path.abspath(__file__))
   data.gbl.program  = os.path.splitext(os.path.basename(sys.argv[0]))[0].lower()
   data.gbl.platform = platform
