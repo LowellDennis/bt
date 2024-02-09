@@ -3,7 +3,7 @@
 ### What is this repository for? ###
 
 * A tool for working with HPE Server BIOS source code.
-* Current Version is V0.1
+* Current Version is V0.2
 
 ### How do I get set up? ###
 
@@ -151,6 +151,10 @@ The main program is 'bt.cmd'
 
 ### Version History ###
 | Version | Explanation                                                                            |
+|---------|----------------------------------------------------------------------------------------|
+| V0.2	  | Release to team                                                                        |
+|         | - Fixed worktree commands                                                              |
+|           - Cleaned up help details                                                              |s
 |---------|----------------------------------------------------------------------------------------|
 | V0.1	  | Original Release                                                                       |
 |---------|----------------------------------------------------------------------------------------|
