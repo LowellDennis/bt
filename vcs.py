@@ -693,6 +693,21 @@ def GetBranchFromWorktree(base):
    result = FilterCommand('git branch', FindBranch, base)
    return branch
 
+# Gets the branch on wich a worktree is based
+# base: Base directory of the worktree
+# returns Branch on which worktree is based
+def DoesBranchExist(repo, branch):
+   found = False
+   def FindBranch(line):
+     nonlocal found
+     # Convert bytes to string (is needed)
+     if isinstance(line, bytes): line = line.decode('utf-8')
+     result = re.match('. {0}'.format(branch), line.strip())
+     if result:
+       found = True
+   FilterCommand('git branch', FindBranch, repo, branch)
+   return found
+
 # Gets path to repository from which a worktree was created
 # base: Base directory of the worktree
 # returns Repository from which a worktree was created, DOES NOT RETURN  otherwise
