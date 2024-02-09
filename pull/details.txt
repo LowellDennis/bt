@@ -10,8 +10,6 @@ Description
 -----------
 Pulls updates from an upstream location into a local repository or worktree.
 
-See Also
---------
-bt push
-bt select
-bt switch
+Also see commands
+-----------------
+push, select, switch

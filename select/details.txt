@@ -10,13 +10,6 @@ Select a BIOS repository or list reposititories in the global repository list
 NOTE: Path must be within an actual BIOS repository
       (top of tree contians .git or .svn directory)
 
-See Also
---------
-bt attach
-bt create
-bt destroy
-bt detach
-bt pull
-bt push
-bt select
-bt switch
+Also see commands
+-----------------
+attach, create, destroy, detach, pull, push, select, switch

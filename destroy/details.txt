@@ -12,9 +12,6 @@ This command destroys a BIOS worktree.
 NOTE: The BIOS worktree will be deleted from the disk
       Ending directory will be parent of worktree base if defaults are used
 
-See Also
---------
-bt create
-bt pull
-bt push
-bt switch
+Also see commands
+-----------------
+create, pull, push, switch

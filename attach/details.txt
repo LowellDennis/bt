@@ -11,10 +11,6 @@ Add a BIOS repository to the global repository list.
 NOTE: Path must be within an actual BIOS repository
       (top of tree contians .git or .svn directory)
 
-See Also
---------
-bt detach
-bt pull
-bt push
-bt select
-bt switch
+Also see commands
+-----------------
+detach, pull, push, select, switch

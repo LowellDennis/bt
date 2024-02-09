@@ -6,12 +6,6 @@ Description
 -----------
 Change directory to the top of the BIOS worktree (or repository)
 
-See Also
---------
-bt attach
-bt create
-bt destroy
-bt detach
-bt select
-bt switch
-
+Also see commands
+-----------------
+attach, create, destroy, detach, select, switch

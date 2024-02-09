@@ -10,8 +10,6 @@ Description
 -----------
 This command moves/renames a BIOS worktree
 
-See Also
---------
-bt create
-bt destroy
-bt switch
+Also see commands
+-----------------
+create, destroy, switch

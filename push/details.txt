@@ -10,8 +10,6 @@ Description
 -----------
 Pushes updates from a local repository or worktree to its remote location
 
-See Also
---------
-bt pull
-bt select
-bt switch
+Also see commands
+-----------------
+pull, select, switch

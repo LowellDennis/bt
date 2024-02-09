@@ -16,9 +16,6 @@ Creates a new BIOS worktree
   in   <directory>
   with <branch> as the name for the new branch
 
-See Also
---------
-bt destroy
-bt push
-bt pull
-bt switch
+Also see commands
+-----------------
+destroy, push, pull, switch

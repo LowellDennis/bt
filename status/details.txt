@@ -12,13 +12,6 @@ Shows the VCS status for the current BIOS worktree (or repository)
    (Filter out all but meaningful changes)
 3. Change directory back to original directory
 
-See Also
---------
-bt attach
-bt create
-bt destroy
-bt detach
-bt pull
-bt push
-bt select
-bt switch
+Also see commands
+-----------------
+attach, create, destroy, detach, pull, push, select, switch

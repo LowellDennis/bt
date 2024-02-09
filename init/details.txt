@@ -10,6 +10,6 @@ Initialize local setting for current BIOS worktree
 Will attempt to autodetect platform directory, CPU name and CPU vendor
 Note: alert, release, and warnings are set to off
 
-See Also
---------
+Also see commands
+-----------------
 bt build

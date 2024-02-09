@@ -20,10 +20,6 @@ This command builds the BIOS for the current BIOS worktree
 3. Change directory to original directory
 4. Send build completion email alert (if enabled)
 
-See Also
---------
-bt clean
-bt config alert
-bt config email
-bt config bmc
-bt init
+Also see commands
+-----------------
+clean, config, init

@@ -5,46 +5,40 @@ bt config [<setting> [/default | <value>]]
   setting:  BIOS tool configuration setting of interest
   value:    Value to be assigned to BIOS tool configuration setting
   NOTE: If no parameters are given, displays current values for all settings
-        If only setting is given, displays current value of the setting
+        If only the setting is given, displays current value of the setting
         Settings can be abbreviated as long as they are unique
         (e.g. e and em are not unique but ema is and would indicate email)
 Global Read-Only Settings
 -------------------------
-last         Last repo/wortree used
-             (Set automatically by many commands)
-repo         Currently selected repository
-             (Set automatically by many command)
+last         Last repo/wortree used          (Set by many commands)
+repo         Currently selected repository   (Set by many commands)
 repositories Path like list of supported repositories
              (Modified by attach and detach commands)
-worktree     Currently selected worktree
-             (Set automatically by many command)
+worktree     Currently selected worktree     (Set by many commands)
 worktrees    List of supported worktrees
              (Modified by create, destroy, and move commands)
 Local Read-Only Settings
 ------------------------
-cpu          CPU type
-             (Set by init command)
-name         Indicates platform name for local BIOS worktree
-             (Set by init command)
-platform     Indicates path to local BIOS platform package directory
-             (Set by init command)
-vendor       CPU vendor name (amd, intel, arm)
-             (Set by init command)
+branch       Branch associated with worktree (Set by create command)
+cpu          CPU type                        (Set by init command)
+name         Platform name                   (Set by init command)
+platform     Path to platformpkg directory   (Set by init command)
+vendor       CPU vendor name                 (Set by init command)
 Global Configurable Settings
 ----------------------------
 email        Email address to alert on BIOS build completion
-             Default is "" which disables notification
+             (Default: "" - disables notification)
 Local Configurable Settings
 ---------------------------
 alert        Controls BIOS build completion notification feature
-             on: alert, off or ""(default): no alert
+             (on: alert, off or ""(default): no alert)
 bmc          Type, IP address, and credentials of the BMC for the current platform
              Format: ilo|openbmc,<ip-address>,<username>,<password>
-             Default is "" which disables bmc communication
+             (Default: "" - disables bmc communication)
 release      Controls type of build that occurs
-             on: release build, off or ""(default): debug build
+             (on: release build, off or ""(default): debug build)
 warnings     Controls whether warnings are shown in build output
-             on: warnings shown, off or ""(default): warnings ignored
+             (on: warnings shown, off or ""(default): warnings ignored)
 
 Description
 -----------
@@ -54,15 +48,6 @@ The /default option sets the setting its default value (usually "")
 If a setting is given, its is set to the indicated value
 (if value is omitted, value of the settings is displayed)
 
-See Also
---------
-bt attach
-bt build
-bt clean
-bt create
-bt destroy
-bt detach
-bt init
-bt move
-bt rebuild
-bt select
+Also see commands
+-----------------
+attach, build, clean, create, destroy, detach, init, move, select, switch

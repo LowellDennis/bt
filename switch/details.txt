@@ -11,9 +11,6 @@ Description
 Switch to a different BIOS worktree or repository.
 If no worktree is given a list of available worktrees and repositories is shown
 
-See Also
---------
-bt attach
-bt detach
-bt create
-bt destroy
+Also see commands
+-----------------
+attach, detach, create, destroy
