@@ -88,7 +88,11 @@ def create():
     # DOES NOT RETURN
 
   # Save resulting branch for destroy
-  data.lcl.SetItem('branch', Branch)
+  name = os.path.join(Abstree, data.SETTINGS_DIRECTORY)
+  os.mkdir(name)
+  name = os.path.join(name, 'branch')
+  with open(name, 'w') as file:
+    file.write(Branch)
 
   # Switch to newly created worktree
   PostBIOS([Abstree[0:2], 'cd {0}'.format(Abstree)])
