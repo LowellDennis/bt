@@ -1,9 +1,9 @@
 Usage
 -----
-bt destroy /branch [<path>]
-   branch: Delete the branch associated with path (if any)
-   path:   Path associated with BIOS worktree to be deleted
-           (defaults to current directory)
+bt destroy /keepbranch
+   keep: Do not delete the branch associated with the worktree
+   path: Path associated with BIOS worktree to be deleted
+         (defaults to current directory)
 
 Description
 -----------

@@ -6,11 +6,10 @@ import sys
 
 # Local modules
 import data
-from announce import Announce
 from cmdline  import ParseCommandLine
-from error    import WarningMessage
+from error    import ErrorMessage
 from postbios import PostCMD, PostBIOS
-from misc     import GetCurrentBranch
+from run      import DoCommand
 from vcs      import GetVCSInfo
 
 INPUT = raw_input if sys.version_info.major == 2 else input
@@ -19,7 +18,7 @@ INPUT = raw_input if sys.version_info.major == 2 else input
 # returns 0 on success, DOES NOT RETURN otherwise
 def destroy():
   # Get command line information
-  prms, opts = ParseCommandLine({'branch': False}, 1)
+  prms, opts = ParseCommandLine({'keepbranch': False}, 1)
   # Does not return if invalid options or parameters are found
 
   # Get path of worktree to be destroyed
@@ -30,7 +29,7 @@ def destroy():
   info     = GetVCSInfo(data.gbl.worktrees, path, 'worktree', True)
   worktree = info.VCS().Base()
   repo     = info.Repo()
-  branch   = GetCurrentBranch(worktree)
+  branch   = data.lcl.GetItem('branch')
 
   # Get confirmation from user remove it
   print('About to remove worktree {0}!\nThis will delete {0} from your system!'.format(worktree))
@@ -43,17 +42,20 @@ def destroy():
 
   # If user agreed ... get rid of worktree
   if choice == 'y':
+  
+    # Move away from directoy being removed (if needed)
+    cmds = []
+    if cwd.lower() == worktree:
+      cmds += [repo[0:2], 'cd {0}'.format(repo)]
 
-    # Create post execution script to perform destroy operation
-    cmd =   'git worktree remove --force {0}'.format(worktree)
-    cmds =  [ 'cd {0}'.format(repo) ]
+    # Add command for removing a worktree
+    cmd  = 'git worktree remove --force {0}'.format(worktree)
     cmds += PostCMD(cmd, 'Removing worktree', 'Destroy Worktree')
-    if opts['branch']:
-      if branch == None:
-        WarningMessage('Not on a branch ... therefore branch cannot be deleted')
-      else:
-        cmds.append('git branch -d {0}'.format(branch))
-    if path != cwd: cmds.append('cd {0}'.format(os.path.abspath(cwd)))
+
+    # Handle removal of associate branch (unless instructed to leave it)
+    if not opts['keepbranch'] and branch:
+      cmds.append('git branch -D {0}'.format(branch))
+
     PostBIOS(cmds)
 
   return 0
