@@ -1,5 +1,6 @@
 alert
 bmc
+*branch,   {0} create
 *cpu,      {0} init
 *name,     {0} init
 *platform, {0} init
