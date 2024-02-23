@@ -705,7 +705,7 @@ def DoesBranchExist(repo, branch):
      result = re.match('. {0}'.format(branch), line.strip())
      if result:
        found = True
-   FilterCommand('git branch', FindBranch, repo, branch)
+   FilterCommand('git branch', FindBranch, repo)
    return found
 
 # Gets path to repository from which a worktree was created
