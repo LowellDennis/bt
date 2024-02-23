@@ -4,7 +4,7 @@ bt create [/repo <repo>] <branch> <directory> [<commit-ish>]
    repo       Repository from which to create BIOS worktree
               (default is currently selected repository)
    branch     Branch name for new BIOS worktree
-   commit-ish Commit ID, tag, or branch on which brnach is to be based
+   commit-ish Commit ID, tag, or branch on which branch is to be based
               (default is HEAD)
    directorry Directory where worktree is to be created
    NOTE: Options may be abbreviated (e.g /r same as /repo)
