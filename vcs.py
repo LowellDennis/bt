@@ -784,7 +784,7 @@ def FindWorkTreeFromPartialPath(partial):
   for worktree in data.gbl.worktrees:   # Loop through worktrees
     match = worktree.lower()
     # See if partial path matches this worktree exactly
-    if target.startswith(match):
+    if match.startswith(target):
       return worktree
     # See if partail path is part of worktree
     if target in match:
