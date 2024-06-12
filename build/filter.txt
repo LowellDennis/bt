@@ -13,3 +13,4 @@
 Error[a-zA-Z0-9_]+.(map|pdb|inf|dll|efi|depex)
 Error(Control|InformationApp)\\
 \bmight be in error\b
+\bEdk2/BaseTools/Bin/Win32/FitGen.exe not found!\b
