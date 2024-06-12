@@ -27,8 +27,17 @@ class BuildLogger(Logger):
   def __init__(self, dir, warn = False):
     self.passed = False
     self.warn   = warn
+    self.count  = 0
     self.Load()
     Logger.__init__(self, 'Build.log', 'Building', warn)
+
+  # Prints output
+  # prefix: Prefix to include in optput
+  # line:   Line of output
+  # result: Variable in which to return infomation (if needed)
+  # returns nothing
+  def Print(self, prefix, line):
+    Logger.Print(self, '{0:>6}'.format(self.count), line)
 
   # Indicates if a line is a real error or warning
   # which:  'error' for error, 'warn' otherwise
@@ -56,6 +65,7 @@ class BuildLogger(Logger):
   # line:   Line of output
   # returns nothing
   def Process(self, line):
+    self.count += 1
     if (line.startswith(b'-- Build Ok --')): self.passed = True
     Logger.Process(self, line)
 
