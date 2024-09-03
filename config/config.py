@@ -17,10 +17,23 @@ rePath = re.compile('([a-z]:)?', re.IGNORECASE)
 # item:  Setting to be displayed
 # local: True if it is a local setting, False if it is a global setting
 def DisplayItem(item, local):
+  extra = []
   if local: value = data.lcl.GetItem(item)
-  else:     value = data.gbl.GetItem(item)
+  else:
+    value = data.gbl.GetItem(item)
+    if item == 'repositories':
+      items = value.split(';')
+      value = items[0]
+      extra = items[1:]
+    elif item == 'worktrees':
+      extra = value[1:]
+      value = value[0]
   # Display it
   print('  {0}.{1:<15}  = "{2}"'.format('local' if local else 'global', item, value))
+  if extra:
+    for val in extra:
+      print('                            "{0}"'.format(val))
+
 
 # Validates a file path
 # path:   Path to validate
@@ -85,7 +98,6 @@ def DisplayAll():
 
     # Display current values for all read-only global settings
     print('\n  Global Read-Only Items\n  -------------------------')
-    # Local configuration items
     for item in data.gbl.readonly:
       DisplayItem(item, False)
 
