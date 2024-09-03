@@ -32,7 +32,7 @@ def DisplayItem(item, local):
   print('  {0}.{1:<15}  = "{2}"'.format('local' if local else 'global', item, value))
   if extra:
     for val in extra:
-      print('                            "{0}"'.format(val))
+      print('                            "{0}"'.format(val.strip()))
 
 
 # Validates a file path
