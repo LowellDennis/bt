@@ -41,7 +41,8 @@ def create():
     # DOES NOT RETURN
 
   # Get parameters (with defaults)
-  Branch    = Prms[0]
+  Branch    = Prms[0].replace("\\", "/") # Enforce that branches have slashes not backslashes
+  #Branch    = Prms[0]
   Worktree  = Prms[1]
   Abstree   = os.path.abspath(Worktree)
   Commitish = "HEAD" if len(Prms) < 3 else Prms[2]
