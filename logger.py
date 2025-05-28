@@ -39,7 +39,7 @@ class Logger:
   # Indicates if a line is a real error or warning
   # which:  'error' for error, 'warn' otherwise
   # line :  Line to check
-  # result: Variable in which to return infomation (if needed)
+  # result: Variable in which to return information (if needed)
   # returns True if real error or warning, False otherwise
   def IsReal(self, which, line, result):
     return True
@@ -47,7 +47,7 @@ class Logger:
   # Prints output
   # prefix: Prefix to include in optput
   # line:   Line of output
-  # result: Variable in which to return infomation (if needed)
+  # result: Variable in which to return information (if needed)
   # returns nothing
   def Print(self, prefix, line):
     # Remove trailing whitespace from line

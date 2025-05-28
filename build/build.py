@@ -34,7 +34,7 @@ class BuildLogger(Logger):
   # Prints output
   # prefix: Prefix to include in optput
   # line:   Line of output
-  # result: Variable in which to return infomation (if needed)
+  # result: Variable in which to return information (if needed)
   # returns nothing
   def Print(self, prefix, line):
     Logger.Print(self, '{0:>6}'.format(self.count), line)
@@ -42,7 +42,7 @@ class BuildLogger(Logger):
   # Indicates if a line is a real error or warning
   # which:  'error' for error, 'warn' otherwise
   # line :  Line to check
-  # result: Variable in which to return infomation (if needed)
+  # result: Variable in which to return information (if needed)
   # returns True if real error or warning, False otherwise
   def IsReal(self, which, line, result):
     # Eliminate false positives
