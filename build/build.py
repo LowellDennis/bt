@@ -98,7 +98,7 @@ def build():
   bld       = BuildLogger(directory, warning)
 
   # Execute build command
-  cmd       = 'hpbuild.bat -b {0} -P {1}'.format(btype, name)
+  cmd       = 'hpbuild.bat -b {0} -P {1} --UDRIVE'.format(btype, name)
   if opts['upload']:
     bmc = GetBmcInfo()
     if not bmc:
