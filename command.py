@@ -3,6 +3,7 @@
 # Standard python modules
 import os
 import sys
+import importlib.util
 
 # Local modules
 import data
@@ -30,19 +31,22 @@ class Command:
   # returns nothing
   def __init__(self, dir):
     assert dir and dir != ''
-    # Import command
-    base = os.path.basename(dir)    # Get name of command
-    sys.path.insert(0,dir)          # Add its directory to the python path
-    exec('import {0}'.format(base)) # Import it!
+     # Get name of module, and path to py file
+    name    = os.path.basename(dir)    # Get name of command
+    path    = os.path.join(dir, "{0}.py".format(name))
+    # Create a module specification
+    spec    = importlib.util.spec_from_file_location(name, path)
+    module  = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module  # Add to sys.modules
+    spec.loader.exec_module(module)
     # Load help text from files
     for key in ('terse', 'details'):
       with open(os.path.join(dir, COMMAND_FILES[key])) as txt:
         setattr(self, key, txt.read().strip())
     # Indicate need for presence in VCS tree
     setattr(self, "needsVcs", os.path.isfile(os.path.join(dir, NEEDS_VCS)))
-    # Set up execution
-    cmd = 'self.code = {0}.{0}'.format(base)
-    exec(cmd)
+    # Get the function from the module
+    self.code = getattr(module, name)
 
   # Processing command specific help
   # level:  Level of help needed (terse or details)
