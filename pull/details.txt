@@ -1,10 +1,9 @@
 Usage
 -----
-bt pull [/merge parent] [<repo>]
-  merge: Pull changes from parent repository into child worktree
+bt pull [<repo>]
   repo:  repository or worktree on which to perform the pull operation
          (if repo is not given, the current directory is used)
-  Note:  (For svn repositories this is an "svn update")
+  Note:  (This command only works for git repositories and worktrees)
 
 Description
 -----------
