@@ -1,0 +1,1 @@
+Merge updates from an upstream location into a local repository or worktree.

@@ -1,0 +1,14 @@
+Usage
+-----
+bt merge [/target <tgt>] commit-ish
+  tgt         Repository or worktree into which to perform the merge operation
+              (if tgt is not specified, the current directory is used)
+  commit-ish  Commit ID, tag, or branch to be merged
+
+Description
+-----------
+Merge updates from an upstream location into a local repository or worktree.
+
+Also see commands
+-----------------
+pull, push, select, switch, update
