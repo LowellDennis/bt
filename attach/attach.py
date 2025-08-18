@@ -25,13 +25,11 @@ def attach():
 
   # Do not add it if is not a repository
   if not info:
-    # Already there
     ErrorMessage('Not a repository: {0}'.format(tgt))
     # DOES NOT RETURN
 
-  # Do not add it if it is already there
+  # Do not add it if it is already attached
   if info.IsListed():
-    # Already there
     ErrorMessage('Repository already attached: {0}'.format(tgt))
     # DOES NOT RETURN
 

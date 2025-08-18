@@ -19,7 +19,7 @@ Steps
   b. Error: if the top is not a repository!
   c. Error: if the top is already in the list of repositories!
 4. Add the top directory to the list of repositories.
-5. If no repository is selected, select the top directory.
+5. If no repository is selected, the newly attached repository is selected.
 
 See also
 --------
