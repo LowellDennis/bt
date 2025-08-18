@@ -11,9 +11,11 @@ bt config [<setting> [<value> | /default]]
 
 Steps
 -----
-1. If no parameters are given,
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. If no parameters are given,
   a. Show the current values for all settings.
-2. Else, validate the given setting name. 
+3. Otherwise, validate the given setting name. 
   a. If only the setting is given,
     i. Show the current value of the given setting.
   b. Otherwise, if the default option is used,

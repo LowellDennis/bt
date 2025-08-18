@@ -10,20 +10,16 @@ bt init <name>
 
 Steps
 -----
-1. Mark the starting directory
-  a. In case of an error, change the directory to the starting directory.
-2. Change directory to the top of the repository or worktree.
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. Determine the top directory of the target repository or worktree.
   a. Error: if the top cannot be found!
   b. Error: if the top is not in the list of repositories or worktrees!
-3. Sets the local name to the value given for name.
-4. Uses the given value for name to detect the values for local platform, vendor, and cpu.
-5. If the value for local alert is not set (or invalid),
-  a. Set the alert to off.
-6. If the value for local release is not set (or invalid),
-  a. Set release to off.
-7. If the value for local warnings is not set (or is invalid),
-  a. Set warnings to off.
-8. Change the directory to the starting directory.
+3. Set the local name to the value supplied for name.
+4. Use the name to detect the local values for platform, vendor, and cpu.
+5. For local values for alert, release, and warnings,
+  a. If the value is not set or is invalid,
+    i. Set the value to off.
 
 See also
 --------

@@ -10,15 +10,14 @@ bt detach [<path>]
 
 Steps
 -----
-1. Mark the starting directory.
-  a. In case of an error, change the directory to the starting directory.
-2. If a path is given, change the directory to the path.
-3. Change directory to the top of the repository or worktree.
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. The target directory is the path, if provided, or the current directory if not.
+3. Determine the top directory of the target repository or worktree.
   a. Error: if the top cannot be found!
   b. Error: if the top is not a repository!
   c. Error: if the top is not in the list of repositories!
 4. Remove the repository from the list of repositories.
-5. Change back to the starting directory.
 
 See also
 --------

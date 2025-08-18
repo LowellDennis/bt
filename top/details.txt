@@ -8,9 +8,9 @@ bios top
 
 Steps
 -----
-1. Mark the starting directory
-  a. In case of an error, change the directory to the starting directory.
-2. Change directory to the top of the repository or worktree.
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. Change directory to the top of the current repository or worktree.
   a. Error: if the top cannot be found!
   b. Error: if the top is not in the list of repositories or worktrees!
 

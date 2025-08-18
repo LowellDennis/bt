@@ -10,14 +10,14 @@ bt select [<path>]
 
 Steps
 -----
-1. Mark the starting directory
-  a. In case of an error, change the directory to the starting directory.
-2. If a path is given, change the directory to the path.
-3. Change directory to the top of the repository or worktree.
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. Determine the top directory of the current repository or worktree.
   a. Error: if the top cannot be found!
-  b. Error: if the top is not in the list of repositories!
-4. Set repo to the current repository.
-5. Change the directory to the starting directory.
+  b. Error: if the top is not in the list of repositories or worktrees!
+3. Filter the output of the status command,
+  a. Show changes to any versioned files.
+  b. If all is given, also show changes to unversioned files.
 
 See also
 --------

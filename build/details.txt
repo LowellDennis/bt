@@ -7,22 +7,30 @@ Usage
 bt build [/release | /debug] [/warnings] [/upload]
    /debug:    Force building a debug   build.
    /release:  Force building a release build.
-              (By default, the local setting for release controls what is built)
+              (By default, the local setting for release controls what is built.)
    /warnings: Turns on reporting of warnings.
-              (Warnings are not included by default.)
+              (By default, the local setting for warnings controls this.)
    /upload:   Upload the resulting BIOS to the BMC upon completion.
+              (By default, no upload takes place)
 
 Steps
 -----
-1. Mark the starting directory
-  a. In case of an error, change the directory to the starting directory.
-2. Change directory to the top of the repository or worktree.
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+3. Determine the top directory of the target repository or worktree.
   a. Error: if the top cannot be found!
   b. Error: if the top is not in the list of repositories or worktrees!
-3. Issue indicated build command capturing output to 'build.log.'
-  a. Filter the screen output so errors and, optionally, warnings are more visible.
-4. Change the directory to the starting directory.
-5. Send build completion email alert (if enabled).
+3. Create the build command with the indicated parameters and switches.
+  a. Release build if /release is present, or local release is true.
+  b. Debug build if /debug is present, or local release is false.
+  c. Include warnings if /warnings is present, or local warnings is true.
+  d. Upload to iLO if /upload is present, and local bmc indicates iLO.
+    i. Error: if /upload is present, and local bmc is not set.
+4. Issue the build command, capturing output to 'build.log.'
+  a. Filter the screen output so errors and warnings are more visible.
+5. Upload to OpenBMC if /upload is present, and local bmc indicates OpenBMC.
+  a. Error: if /upload is present, and local bmc is not set.
+6. Send build completion email alert (if enabled).
 
 See also
 --------

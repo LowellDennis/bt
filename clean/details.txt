@@ -8,13 +8,14 @@ bt clean
 
 Steps
 -----
-1. Mark the starting directory.
-  a. In case of an error, change the directory to the starting directory.
-2. Change directory to the top of the repository or worktree.
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+3. Determine the top directory of the target repository or worktree.
   a. Error: if the top cannot be found!
   b. Error: if the top is not in the list of repositories or worktrees!
-3. Delete the BUILD directory.
-4. Change the directory to the starting directory (if it still exists).
+3. Delete the BUILD folder that is a subdirectory of the top directory.
+4. Change the directory to the top directory,
+   if the starting directory no longer exists.
 
 See also
 --------

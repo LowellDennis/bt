@@ -14,17 +14,17 @@ bt create [/repo <path>] <branch> <worktree> [<commit-ish>]
 
 Steps
 -----
-1. Mark the starting directory.
-  a. In case of an error, change the directory to the starting directory.
-2. If the path is given, change the directory to the path.
-3. Change directory to the top of the repository or worktree.
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. The target directory is the path, if provided, or the current directory if not.
+3. Determine the top directory of the target repository or worktree.
   a. Error: if the top cannot be found!
   b. Error: if the top is not a repository!
   c. Error: if the top is not in the list of repositories!
-  d .Error: If the branch already exists.
+  d. Error: If the branch already exists.
   e. Error: If the worktree is already in the list of worktrees.
   f. Error: If commit-ish does not exist.
-4. Create a new BIOS worktree from <repo>@<commit-ish> in <worktree> with named <branch>.
+4. Create a new BIOS worktree from <top>@<commit-ish> in <worktree> with named <branch>.
 5. Change directory to worktree.
 
 See also

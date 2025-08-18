@@ -11,12 +11,14 @@ bt switch [<path>]
       
 Steps
 -----
-1. If no path is given,
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. If no path is given,
   a. List all available repositories and worktrees.
-2. Otherwise, search for the path in the lists of repositories and worktrees.
+3. Otherwise, search for the path in the lists of repositories and worktrees.
   a. Error: If not found!
   b. Error: If not unique or exact!
-3. Change directory to the indicated repository or worktree.
+  c. Change directory to the indicated repository or worktree.
 
 See also
 --------
