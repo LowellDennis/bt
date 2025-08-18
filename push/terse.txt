@@ -1,1 +1,1 @@
-Pushes updates from a local repository or worktree to its remote location.
+Push updates from a local repository or worktree to its remote location.

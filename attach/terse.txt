@@ -1,1 +1,1 @@
-Add a BIOS repository to the global repository list
+Add a BIOS repository to the list of repositories.

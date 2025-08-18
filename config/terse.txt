@@ -1,1 +1,1 @@
-Get or set BIOS tool configuration settings
+Get or set BIOS tool configuration settings.

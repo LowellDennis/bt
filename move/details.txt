@@ -1,15 +1,27 @@
-Usage
------
-bt move <destination> [<source>]
-  destination: Path to which to move the worktree
-  source:      Current path of the worktree to be moved
-               (default moves current directory)
-  NOTE: Only worktrees can be moved!
-
 Description
 -----------
-This command moves/renames a BIOS worktree
+Move a BIOS worktree.
 
-Also see commands
------------------
+Usage
+-----
+bt move <destination> [<path>]
+  destination: Destination path to which to move the worktree
+  path:        Source path of the worktree to be moved
+               (default moves current directory)
+
+Steps
+-----
+1. Mark the starting directory
+  a. In case of an error, change the directory to the starting directory.
+2. If a path is given, change the directory to the path.
+3. Change directory to the top of the repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not a worktree!
+  c. Error: if the top is not in the list of worktrees!
+  d. Error: if the destination directory already exists or is invalid.
+4. Move the worktree to the destination directory.
+5. Change the directory to the starting directory.
+
+See also
+--------
 create, destroy, switch

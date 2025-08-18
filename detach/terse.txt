@@ -1,1 +1,1 @@
-Remove a BIOS repository from the global repository list.
+Remove a BIOS repository from the list of repositories.

@@ -1,14 +1,27 @@
-Usage
------
-bt merge [/target <tgt>] commit-ish
-  tgt         Repository or worktree into which to perform the merge operation
-              (if tgt is not specified, the current directory is used)
-  commit-ish  Commit ID, tag, or branch to be merged
-
 Description
 -----------
 Merge updates from an upstream location into a local repository or worktree.
 
-Also see commands
------------------
+Usage
+-----
+bt merge [/target <path>] commit-ish
+  path        Repository or worktree into which to perform the merge operation
+              (if path is not specified, the current directory is used)
+  commit-ish  Commit ID, tag, or branch to be merged
+
+Steps
+-----
+1. Mark the starting directory
+  a. In case of an error, change the directory to the starting directory.
+2. If a path is given, change the directory to the path.
+3. Change directory to the top of the repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+  c. Error: if the repository or worktree has changes!
+  d. Error: if commit-ish does not exist!
+4. Perform the merge command.
+5. Change the directory to the starting directory.
+
+See also
+--------
 pull, push, select, switch, update

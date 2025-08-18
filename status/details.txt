@@ -1,17 +1,24 @@
+Description
+-----------
+Get the status of the current BIOS repository or worktree.
+
 Usage
 -----
 bios status [all]
      all:  Include status of unversioned files as well
      NOTE: All may be abbreviated (e.g. 'a' is the same as 'all')
 
-Description
------------
-Shows the VCS status for the current BIOS worktree (or repository)
-1. Change directory to top of BIOS worktree
-2. Issue VCS status command
-   (Filter out all but meaningful changes)
-3. Change directory back to original directory
+Steps
+-----
+1. Mark the starting directory
+  a. In case of an error, change the directory to the starting directory.
+2. Change directory to the top of the repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+3. Filter the output of the status command showing changes to any versioned files.
+  a. If all is given, also show changes to unversioned files.
+4. Change the directory to the starting directory.
 
-Also see commands
------------------
+See also
+--------
 attach, create, destroy, detach, pull, push, select, switch

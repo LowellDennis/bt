@@ -1,15 +1,30 @@
+Description
+-----------
+Initialize the local settings for the current BIOS repository or worktree.
+
 Usage
 -----
 bt init <name>
    name: BIOS platform name for current BIOS worktree
          (This is something like U66, A55, or R13)
 
-Description
------------
-Initialize local setting for current BIOS worktree
-Will attempt to autodetect platform directory, CPU name and CPU vendor
-Note: alert, release, and warnings are set to off
+Steps
+-----
+1. Mark the starting directory
+  a. In case of an error, change the directory to the starting directory.
+2. Change directory to the top of the repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+3. Sets the local name to the value given for name.
+4. Uses the given value for name to detect the values for local platform, vendor, and cpu.
+5. If the value for local alert is not set (or invalid),
+  a. Set the alert to off.
+6. If the value for local release is not set (or invalid),
+  a. Set release to off.
+7. If the value for local warnings is not set (or is invalid),
+  a. Set warnings to off.
+8. Change the directory to the starting directory.
 
-Also see commands
------------------
-bt build
+See also
+--------
+build

@@ -1,1 +1,1 @@
-Moves a BIOS worktree
+Move a BIOS worktree.

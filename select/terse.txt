@@ -1,1 +1,1 @@
-Select a BIOS repository or list reposititories in the global repository list
+Select a BIOS repository from the list of repositories.

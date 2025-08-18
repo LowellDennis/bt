@@ -1,17 +1,28 @@
-Usage
------
-bt destroy /keepbranch
-   keep: Do not delete the branch associated with the worktree
-   path: Path associated with BIOS worktree to be deleted
-         (defaults to current directory)
-
 Description
 -----------
-This command destroys a BIOS worktree.
+Deletes a BIOS worktree and removes it from the list of worktrees.
 
-NOTE: The BIOS worktree will be deleted from the disk
-      Ending directory will be parent of worktree base if defaults are used
+Usage
+-----
+bt destroy /keep [path]
+   /keep: Do not delete the branch associated with the worktree.
+   path:  Path associated with BIOS worktree to be deleted
+          (Defaults to current directory.)
 
-Also see commands
------------------
+Steps
+-----
+1. Mark the starting directory.
+  a. In case of an error, change the directory to the starting directory.
+2. Change the directory to the path, if given.
+3. Change directory to the top of the repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not a worktree!
+  c. Error: if the top is not in the list of worktrees!
+4. Change directory to the parent directory of the worktree.
+5. Delete the worktree (use --force).
+6. If /keep was not given, delete the branch associated with the worktree.
+7. Change directory back to the starting directory (if it still exists).
+
+See also
+--------
 create, pull, push, switch

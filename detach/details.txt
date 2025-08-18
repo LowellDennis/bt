@@ -1,17 +1,25 @@
+Description
+-----------
+Remove a BIOS repository from the list of repositories.
+
 Usage
 -----
 bt detach [<path>]
    path:  Path associated with BIOS repository to be detached
           (defaults to current directory)
 
-Description
------------
-Remove a BIOS repository from the global repository list.
+Steps
+-----
+1. Mark the starting directory.
+  a. In case of an error, change the directory to the starting directory.
+2. If a path is given, change the directory to the path.
+3. Change directory to the top of the repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not a repository!
+  c. Error: if the top is not in the list of repositories!
+4. Remove the repository from the list of repositories.
+5. Change back to the starting directory.
 
-NOTE: Path must be within an actual BIOS repository
-      (top of tree contians .git or .svn directory)
-      Does not delete the repository from the disk.
-
-Also see commands
------------------
+See also
+--------
 attach, pull, push, select, switch

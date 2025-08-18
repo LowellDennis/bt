@@ -1,11 +1,19 @@
+Description
+-----------
+Change directory to the top of the BIOS repository or worktree.
+
 Usage
 -----
 bios top
 
-Description
------------
-Change directory to the top of the BIOS worktree (or repository)
+Steps
+-----
+1. Mark the starting directory
+  a. In case of an error, change the directory to the starting directory.
+2. Change directory to the top of the repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
 
-Also see commands
------------------
+See also
+--------
 attach, create, destroy, detach, select, switch

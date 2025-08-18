@@ -1,14 +1,25 @@
-Usage
------
-bt pull [<repo>]
-  repo:  repository or worktree on which to perform the pull operation
-         (if repo is not given, the current directory is used)
-  Note:  (This command only works for git repositories and worktrees)
-
 Description
 -----------
-Pulls updates from an upstream location into a local repository or worktree.
+Updates a local repository or worktree with changes from its remote location.
 
-Also see commands
------------------
+Usage
+-----
+bt pull [<path>]
+  path:  repository or worktree on which to perform the pull operation
+         (if path is not given, the current directory is used)
+
+Steps
+-----
+1. Mark the starting directory
+  a. In case of an error, change the directory to the starting directory.
+2. If a path is given, change the directory to the path.
+3. Change directory to the top of the repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+  c. Error: if this repository or worktree has uncommitted changes.
+4. Perform the pull (git)/update (SVN) command.
+5. Change the directory to the starting directory.
+
+See also
+--------
 push, select, switch

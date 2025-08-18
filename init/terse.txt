@@ -1,1 +1,1 @@
-Initialize local setting for current BIOS worktree
+Initialize the local settings for the current BIOS repository or worktree.

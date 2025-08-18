@@ -1,1 +1,1 @@
-Change directory to the top of the BIOS worktree (or repository)
+Change directory to the top of the BIOS repository or worktree.

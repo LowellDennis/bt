@@ -1,1 +1,1 @@
-Build a BIOS for current BIOS worktree
+Build a BIOS for the current BIOS repository or worktree.

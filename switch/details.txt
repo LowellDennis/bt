@@ -1,16 +1,23 @@
-Usage
------
-bt switch [<worktree>]
-   worktree:  Path of the worktree or repository to which to switch
-   NOTE: Name of or partial path to a worktree may be used
-         (must not conflict with another BIOS worktree name or path)
-         If worktree is not given shows a list of available worktrees and repositories
-      
 Description
 -----------
-Switch to a different BIOS worktree or repository.
-If no worktree is given a list of available worktrees and repositories is shown
+Switch to a different BIOS repository or worktree.
 
-Also see commands
------------------
+Usage
+-----
+bt switch [<path>]
+   path: Path of the worktree or repository to which to switch
+         If path is not given shows a list of available repositories and worktrees
+   NOTE: A partial path may be used as long as it is unique.
+      
+Steps
+-----
+1. If no path is given,
+  a. List all available repositories and worktrees.
+2. Otherwise, search for the path in the lists of repositories and worktrees.
+  a. Error: If not found!
+  b. Error: If not unique or exact!
+3. Change directory to the indicated repository or worktree.
+
+See also
+--------
 attach, detach, create, destroy

@@ -1,16 +1,25 @@
+Description
+-----------
+Add a BIOS repository to the list of repositories.
+
 Usage
 -----
 bt attach [<path>]
-   path: Path associated with BIOS repository to be attached
-         (defaults to current directory)
+   path: Path associated with the BIOS repository to be attached.
+         (Defaults to current directory.)
 
-Description
------------
-Add a BIOS repository to the global repository list.
+Steps
+-----
+1. Mark the starting directory.
+  a. In case of an error, change the directory to the starting directory.
+2. Change the directory to the path, if given.
+3. Change directory to the top of the repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not a repository!
+  c. Error: if the top is already in the list of repositories!
+4. Add the repository to the list of repositories.
+5. Change back to the starting directory.
 
-NOTE: Path must be within an actual BIOS repository
-      (top of tree contians .git or .svn directory)
-
-Also see commands
------------------
+See also
+--------
 detach, pull, push, select, switch

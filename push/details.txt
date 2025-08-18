@@ -1,15 +1,25 @@
-Usage
------
-bt push [<repo>]
-  repo: repository or worktree on which to perform the push operation
-        (if repo is not given, the current directory is used)
-  Note: This command only works with git repositories and worktrees
-        (For svn repositories use the "svn commit" command)
-
 Description
 -----------
-Pushes updates from a local repository or worktree to its remote location
+Push updates from a local repository or worktree to its remote location.
 
-Also see commands
------------------
+Usage
+-----
+bt push [<path>]
+  path: path to repository or worktree on which to perform the push operation
+        (if path  is not given, the current directory is used)
+
+Steps
+-----
+1. Mark the starting directory
+  a. In case of an error, change the directory to the starting directory.
+2. If a path is given, change the directory to the path.
+3. Change directory to the top of the repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+  c. Error: if the top is an SVN repository!
+4. Perform the push operation.
+5. Change the directory to the starting directory.
+
+See also
+--------
 pull, select, switch

@@ -1,25 +1,29 @@
+Description
+-----------
+Build a BIOS for the current BIOS repository or worktree.
+
 Usage
 -----
 bt build [/release | /debug] [/warnings] [/upload]
-   /debug:    Force building a debug   build
-   /release:  Force building a release build
-              (by default the local setting for release controls whether a
-               release or debug build is done. If not set /debug is default)
-   /warnings: Turns on reporting of warnings
-              (warnings not included by default)
-   /upload:   Upload resulting BIOS to the BMC upon completion
-   NOTE: Performs a BIOS build for the current BIOS worktree
-         Options may be abbreviated (e.g. /r is the same as /release)
+   /debug:    Force building a debug   build.
+   /release:  Force building a release build.
+              (By default, the local setting for release controls what is built)
+   /warnings: Turns on reporting of warnings.
+              (Warnings are not included by default.)
+   /upload:   Upload the resulting BIOS to the BMC upon completion.
 
-Description
------------
-This command builds the BIOS for the current BIOS worktree
-1. Changes directory to BIOS the top of the current BIOS worktree
-2. Issue indicated build command capturing output to 'build.log'
-   (Filters screen output so errors and optionally warnings are more visible)
-3. Change directory to original directory
-4. Send build completion email alert (if enabled)
+Steps
+-----
+1. Mark the starting directory
+  a. In case of an error, change the directory to the starting directory.
+2. Change directory to the top of the repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+3. Issue indicated build command capturing output to 'build.log.'
+  a. Filter the screen output so errors and, optionally, warnings are more visible.
+4. Change the directory to the starting directory.
+5. Send build completion email alert (if enabled).
 
-Also see commands
------------------
+See also
+--------
 clean, config, init
