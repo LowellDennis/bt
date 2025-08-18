@@ -81,7 +81,7 @@ def GetBmcInfo():
     if length < 2:
       ErrorMessage('IP address required for {0}'.format(info['bmc']))
     info['ip'] = ValidateIP(bmc[1])
-    if length > 2: info['user']     = bmc[2]
+    if length > 2: info['user'] = bmc[2]
     if length > 3: info['pswd'] = bmc[3]
   return info
 
