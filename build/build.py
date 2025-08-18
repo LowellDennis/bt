@@ -13,9 +13,10 @@ from error    import ErrorMessage
 from logger   import Logger
 from misc     import GetBuildType, GetWarnings, GetBmcInfo, GetAlert
 from postbios import PostBIOS
-from run      import FilterCommand
+from run      import FilterCommand, RunCommand
 
 bld    = None
+#upload = False
 
 # Logger for the build command
 class BuildLogger(Logger):
@@ -110,12 +111,16 @@ def build():
       cmd = cmd + ' -I {0}'.format(bmc['ip'])
     # Handle OpenBMC
     else:
-      ErrorMessage('OpenBMC upload support TBD')
-      # DOES NOT RETURN
+     ErrorMessage('Upload to OpenBMC is TBD!')
+ #      upload = True
 
   print('Executing: {0}'.format(cmd))
   try:
     rc      = FilterCommand(cmd, bld.Process, directory)
+
+#    if upload:
+#      cmd = "scp Build\\Images\\" + btype + "\\" + name + "*burn.bin root@" + bmc['ip'] + ":/tmp/bios.rom"
+#      RunCommand(cmd, directory)
 
     # Send email alert (if enabled)
     if GetAlert():
