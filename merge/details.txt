@@ -18,7 +18,7 @@ Steps
 3. Determine the top directory of the target repository or worktree.
   a. Error: if the top cannot be found!
   b. Error: if the top is not in the list of repositories or worktrees!
-  c. Error: if the repository or worktree has changes!
+  c. Error: if the repository or worktree has uncommitted changes!
   d. Error: if commit-ish does not exist!
 4. Perform the merge command.
 
