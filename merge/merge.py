@@ -35,7 +35,7 @@ def merge():
     # DOES NOT RETURN
 
   # Make sure there are no uncommited changes
-  if info.__vcs.HasUncommitedChanges():
+  if info._VCSInfo__vcs.HasUncommitedChanges():
     ErrorMessage('Unable to merge because there are uncommited changes')
     # DOES NOT RETURN
 
