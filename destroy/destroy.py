@@ -18,7 +18,7 @@ INPUT = raw_input if sys.version_info.major == 2 else input
 # returns 0 on success, DOES NOT RETURN otherwise
 def destroy():
   # Get command line information
-  prms, opts = ParseCommandLine({'keepbranch': False}, 1)
+  prms, opts = ParseCommandLine({'keep': False}, 1)
   # Does not return if invalid options or parameters are found
 
   # Get path of worktree to be destroyed

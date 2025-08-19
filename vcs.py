@@ -219,6 +219,11 @@ class VCS:
     # End status processing
     self.__statusEnd(all)
     return rc
+  
+  # Determine if the repository has uncommited changes
+  # returns True if there are uncommited changes, False otherwise
+  def HasUncommitedChanges(self):
+    return False
 
 # Class for SVN Version Control System (VCS)
 class svnVCS(VCS):
@@ -314,6 +319,13 @@ class svnVCS(VCS):
     # SVN does not have the concept of a "push"
     return 0
 
+  # Determine if the repository has uncommited changes
+  # returns True if there are uncommited changes, False otherwise
+  def HasUncommitedChanges(self):
+    # Run quiet status and if it is empty there are no uncommited changes
+    return self._VCS__run('svn status --quiet') == ''
+
+
 # Class for git Version Control System (VCS)
 class gitVCS(VCS):
 
@@ -405,6 +417,12 @@ class gitVCS(VCS):
   # returns 0 on success, non-zero otherwise
   def Push(self):
     return self._VCS__run('git push')
+
+  # Determine if the repository has uncommited changes
+  # returns True if there are uncommited changes, False otherwise
+  def HasUncommitedChanges(self):
+    # Run porcelian status and if it is empty there are no uncommited changes
+    return self._VCS__run('git status --porcelain') == ''
 
 # Class for handling VCS information
 class VCSInfo:

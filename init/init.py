@@ -13,10 +13,10 @@ from   cmdline  import ParseCommandLine
 from   misc     import FixPath
 
 PRODUCT_PATHS = [
-  'HpeProductLine/Volume/HpPlatforms',    # Gen 11
-  'HpeProductLine/HPC/HpPlatforms',       # Gen 11
-  'HpeProductLine/Synergy/HpPlatforms',   # Gen 11
-  'HpeProductLine/Alabama/HpPlatforms',   # Gen 11
+  'HpeProductLine/Volume/HpPlatforms',    # Gen 11/12/13
+  'HpeProductLine/HPC/HpPlatforms',       # Gen 11/12/13
+  'HpeProductLine/Synergy/HpPlatforms',   # Gen 11/12/13
+  'HpeProductLine/Alabama/HpPlatforms',   # Gen 11/12/13
   'Volume/HpPlatforms',                   # Gen 10+
   'HPC/HpPlatforms',                      # Gen 10+
   'Synergy/HpPlatforms',                  # Gen 10+
@@ -162,7 +162,10 @@ def init():
     data.lcl.SetItem(name, item)
     print('  {0:>6}.{1:<8} = "{2}"'.format('local', name, item))
 
-  # Initialize other items
+  # Initialize other items (if not already set or invalid)
   for name in ['alert', 'release', 'warnings']:
-    data.lcl.SetItem(name, 'off')
-    print('  {0:>6}.{1:<8} = "{2}"'.format('local', name, 'off'))
+    value = data.lcl.GetItem(name)
+    if not value or not value in ('off', 'on'):
+      value = 'off'
+      data.lcl.SetItem(name, value)
+    print('  {0:>6}.{1:<8} = "{2}"'.format('local', name, value))

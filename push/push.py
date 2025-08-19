@@ -36,5 +36,5 @@ def push():
 
   # Perform push operation
   cmd = 'git push'
-  rc = DoCommand('Pushing local update to upstream repository', 'Push Operation', cmd, info.Repo())
+  rc = DoCommand('Pushing local updates to upstream repository', 'Push Operation', cmd, info.Repo())
   return rc

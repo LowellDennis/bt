@@ -12,7 +12,7 @@ from run      import FilterCommand
 
 # Cleans build artefacts
 # target: Target directory to be cleaned
-#        (either BUILD or BUILDR)
+#         (either BUILD or BUILDR)
 # returns 0 on success, DOES NOT RETURN otherwise
 def PerformClean(target):
   rc = 0
@@ -38,12 +38,10 @@ def clean():
   prms, opts = ParseCommandLine(None, 0)
   # DOES NOT RETURN if invalid options or parameters are found
 
-  # Get build directory
-  platform = data.GetSetting(data.lcl, 'platform', '{0} init')
-
-  # Setup for filtering clean command
-  base      = data.gbl.vcs.Base()
-  directory = os.path.join(base, platform)
+  # Get platform name
+  # (makes sure this is a repository or worktree that has been initialized)
+  name     = data.GetSetting(data.lcl, 'name', '{0} init')
+  # DOES NOT RETURN if name is not set
 
   # Clean normal build files
   rc = PerformClean('BUILD')

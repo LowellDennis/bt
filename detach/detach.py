@@ -21,6 +21,7 @@ def detach():
 
   # Get repo from full or partial path
   info = GetVCSInfo(data.gbl.repos, tgt.lower(), 'repository', True)
+  # Does not return on error
 
   # Remove it!
   repo = info.VCS().Base()

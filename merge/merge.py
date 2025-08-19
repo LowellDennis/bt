@@ -34,6 +34,11 @@ def merge():
     ErrorMessage('Could not find {0} in list of repositories and worktrees'.format(tgt))
     # DOES NOT RETURN
 
+  # Make sure there are no uncommited changes
+  if info.__vcs.HasUncommitedChanges():
+    ErrorMessage('Unable to merge because there are uncommited changes')
+    # DOES NOT RETURN
+
   # Perform merge operation
   cmd = '{0} merge {1}'.format(info._VCSInfo__vcs._VCS__name, prms[0])
   rc = DoCommand('Merging changes into local repository', 'Update Operation', cmd, info.Repo())

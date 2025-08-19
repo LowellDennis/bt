@@ -33,6 +33,8 @@ def select():
   
     # Select repo from full or partial path
     info = GetVCSInfo(data.gbl.repos, sys.argv[2], 'repository', True)
+    # Does not return on error
+    
     repo = info.VCS().Base()
     data.gbl.SetItem('repo', repo)
     print('Selected repository = {0}'.format(repo))

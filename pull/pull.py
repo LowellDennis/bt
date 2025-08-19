@@ -29,13 +29,19 @@ def pull():
     ErrorMessage('Could not find {0} in list of repositories and worktrees'.format(tgt))
     # DOES NOT RETURN
 
-  # Pull operation is not available with SVN
-  if info._VCSInfo__vcs._VCS__name == "svn":
-    ErrorMessage('Pull operation cannot be performed on an SVN repository (use "bt upodate")')
+  # Make sure there are no uncommited changes
+  if info.__vcs.HasUncommitedChanges():
+    ErrorMessage('Unable to pull because there are uncommited changes')
     # DOES NOT RETURN
-    
-  # Perform pull operation
-  cmd = 'git pull --rebase'
+
+  # Pull operation for SVN is an update
+  if info._VCSInfo__vcs._VCS__name == "svn":
+    cmd = 'svn update'
+
+  # Pull operation for git
+  else:
+    cmd = 'git pull --rebase'
+
   rc = DoCommand('Syncing with upstream repository', 'Pull Operation', cmd, info.Repo())
 
   return rc
