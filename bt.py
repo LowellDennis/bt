@@ -13,7 +13,7 @@ from error    import NotAWorktree
 # If running this file
 if __name__ == '__main__':
   try:
-    print('BIOS Tool V0.3')
+    print('BIOS Tool V0.4')
     InitializeSettings()
     LoadCommands()
     DispatchCommand()

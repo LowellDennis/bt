@@ -3,7 +3,7 @@
 ### What is this repository for? ###
 
 * A tool for working with HPE Server BIOS source code.
-* Current Version is V0.2
+* Current Version is V0.4
 
 ### How do I get set up? ###
 
@@ -31,7 +31,7 @@ BIOS Tool attempts to simplify HPE Server BIOS development.
 * Makes working with version control software a bit easier
     * Filters out extraneous "unversioned" files in status output
     * Allows source code to be updated easily
-    * FUTURE: Assists in committing and "pushing" changes upstream
+    * FUTURE: Assists in committing changes
 * It implements simple CLEAN, and BUILD commands
     * Command output is:
         * Automatically captured into log files
@@ -44,21 +44,22 @@ BIOS Tool attempts to simplify HPE Server BIOS development.
 ~~~
 usage: bt <command> [param1 [param2 [...]]]
   where command is one of:
-      attach - Add a BIOS repository to the global repository list
-       build - Build a BIOS for the current BIOS worktree
-       clean - Clean current BIOS worktree
-      config - Get or set BIOS tool configuration settings
-      create - Create a new BIOS worktree
-     destroy - Delete a BIOS worktree
-      detach - Remove a BIOS repository from the global repository list.
-        init - Initialize local setting for current BIOS worktree
-        move - Moves a BIOS worktree
-        pull - Pull updates from an upstream remote repository into a local repository.
-        push - Pushes updates from a local repository to the upstream remote repository
-      select - Select a BIOS repository or list repositories in the global repository list
-      status - Get VCS status of the current BIOS worktree
-      switch - Switch to a different BIOS worktree.
-         top - Change the directory to the top of the current BIOS worktree
+      attach - Add a BIOS repository to the list of repositories.
+       build - Build a BIOS for the current BIOS repository or worktree.
+       clean - Clean the current BIOS repository or worktree.
+      config - Get or set BIOS tool configuration settings.
+      create - Creates a new BIOS worktree and adds it to the list of worktrees.
+     destroy - Deletes a BIOS worktree and removes it from the list of worktrees.
+      detach - Remove a BIOS repository from the list of repositories.
+        init - Initialize the local settings for the current BIOS repository or worktree.
+       merge - Merge updates from an upstream location into a local repository or worktree.
+        move - Move a BIOS worktree.
+        pull - Updates a local repository or worktree with changes from its remote location.
+        push - Push updates from a local repository or worktree to its remote location.
+      select - Select a BIOS repository from the list of repositories.
+      status - Get the status of the current BIOS repository or worktree.
+      switch - Switch to a different BIOS repository or worktree.
+         top - Change directory to the top of the BIOS repository or worktree.
 
 NOTE: command can be abbreviated as far as it does not conflict with
       another command abbreviation
@@ -78,28 +79,24 @@ You are now ready to attach repositories to the BIOS tool
 ~~~
 * Now you can create BIOS worktrees for your development needs.
 ~~~
-            bt create [/repo <repo>] [/commit <commit>] [/branch <branch>] [<path>\]name
+            bt create [/repo <path>] <branch> <worktree> [<commit-ish>]
 ~~~
-*  repo: Repository from which to create BIOS worktree
+*  /repo: Path to the pepository from which to create BIOS worktree
    * (default is currently selected repository)
-*  commit: Commit ID from which to start BIOS worktree
-   * (default is HEAD)
 *  branch: Branch name for new BIOS worktree
-   * (default creates BIOS worktree as a detached head)
-*  path   Base directory of new BIOS worktree
-   * (default is the parent of the directory containing the repo)
-*  name   Name to be given to the BIOS worktree
-   * (must be appropriate for a directory name)
+*  worktree: Base directory of new BIOS worktree
+*  commit-ish: Commit ID, tag, or branch on which the new worktree is to be based
+   * (default is HEAD)
 
 The next thing you will need to do is initialize the tool settings for the worktree.
 ~~~
-             cd [<path>\]name
+             cd <worktree>
              bt init <name>
 ~~~
 * name: BIOS platform name for current BIOS worktree
    * This is something like U66, A55, or R13
    * Will attempt to autodetect platform directory, CPU name and CPU vendor
-   * It will also initialize alert, release, and warnings to off
+   * It will also initialize alert, release, and warnings to off if not already set
 
 If you want to be notified when a BIOS build is completed.
 Do the following
@@ -112,7 +109,6 @@ Do the following
 | Alltel            | [insert 10-digit number]@message.alltel.com          |
 | AT&T              | [insert 10-digit number]@txt.att.net                 |
 | Boost Mobile      | [insert 10-digit number]@myboostmobile.com           |
-| ~~Sprint~~            | ~~[insert 10-digit number]@messaging.sprintpcs.com~~     |
 | T-Mobile          | [insert 10-digit number]@tmomail.net                 |
 | U.S. Cellular     | [insert 10-digit number]@email.uscc.net              |
 | Verizon           | [insert 10-digit number]@vtext.com                   |
@@ -152,9 +148,13 @@ The main program is 'bt.cmd'
 ### Version History ###
 | Version | Explanation                                                                            |
 |---------|----------------------------------------------------------------------------------------|
+| V0.4	  | Revamped help text to be more consistent and informative                               |
+|---------|----------------------------------------------------------------------------------------|
+| V0.3	  | Fixed a few minor bugs                                                                 |
+|---------|----------------------------------------------------------------------------------------|
 | V0.2	  | Release to team                                                                        |
 |         | - Fixed worktree commands                                                              |
-|           - Cleaned up help details                                                              |s
+|           - Cleaned up help details                                                              |
 |---------|----------------------------------------------------------------------------------------|
 | V0.1	  | Original Release                                                                       |
 |---------|----------------------------------------------------------------------------------------|
