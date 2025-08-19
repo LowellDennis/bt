@@ -146,7 +146,6 @@ The main program is 'bt.cmd'
  This repo is owned and maintained by [Lowell Dennis](mailto:lowell.dennis@hpe.com?subject="BIOS Tool")
 
 ### Version History ###
-|---------|----------------------------------------------------------------------------------------|
 | Version | Explanation                                                                            |
 |---------|----------------------------------------------------------------------------------------|
 | V0.4	  | Revamped help text to be more consistent and informative                               |
