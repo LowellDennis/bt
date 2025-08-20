@@ -130,6 +130,7 @@ def build():
     rc = FilterCommand(cmd, bld.Process, directory)
 
     if not rc and upload:
+      print('')
       burnBins = GetBurnBins(directory, name, btype)
       script = '{0}\\upload.ps1'.format(os.path.dirname(os.path.abspath(__file__)))
       command = 'powershell.exe -File {0} "{1}" {2} {3} {4}'.format(script, burnBins[0], bmc['ip'], bmc['user'], bmc['password'])
@@ -149,7 +150,7 @@ def build():
         command = 'powershell.exe -File {0} {1} "{2}<eom>" ""'.format(script, email, 'Build successful!' if rc == 0 else 'Build FAILED!')
         commands.append(command)
 
-        if upload:
+        if not rc and upload:
           command = 'powershell.exe -File {0} {1} "{2}<eom>" ""'.format(script, email, 'Upload successful!' if rc2 == 0 else 'Upload FAILED!')
           commands.append(command)
         

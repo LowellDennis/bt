@@ -4,12 +4,32 @@ Param(
   [string]$message
 )
 
-$outlook = New-Object -com Outlook.Application
-$mail = $outlook.CreateItem(0)
-$mail.importance = 2
-$mail.subject = $subject
-$mail.body = $message
-$mail.To = $to
-$username = Get-Item Env:USERNAME
-$mail.Sender = $username.value + "@hpe.com"
-$mail.Send()
+# Ensure Microsoft.Graph is installed
+if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
+    Install-Module Microsoft.Graph -Scope CurrentUser -Force
+}
+
+# Connect to Microsoft Graph (first run will prompt for login)
+Connect-MgGraph -Scopes -NoWelcome "Mail.Send"
+
+# Get the signed-in user ID (UPN)
+$user = (Get-MgContext).Account
+
+# Send the email
+Send-MgUserMail -UserId $user -BodyParameter @{
+    Message = @{
+        Subject = $subject
+        Body = @{
+            ContentType = "Text"
+            Content = $message
+        }
+        ToRecipients = @(
+            @{
+                EmailAddress = @{
+                    Address = $to
+                }
+            }
+        )
+    }
+    SaveToSentItems = "true"
+}
