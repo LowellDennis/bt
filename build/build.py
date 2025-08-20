@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # Standard python modules
+import glob
 import os
 import re
 import sys
@@ -13,10 +14,7 @@ from error    import ErrorMessage
 from logger   import Logger
 from misc     import GetBuildType, GetWarnings, GetBmcInfo, GetAlert
 from postbios import PostBIOS
-from run      import FilterCommand, RunCommand
-
-bld    = None
-#upload = False
+from run      import FilterCommand, DoCommand
 
 # Logger for the build command
 class BuildLogger(Logger):
@@ -70,6 +68,15 @@ class BuildLogger(Logger):
     if (line.startswith(b'-- Build Ok --')): self.passed = True
     Logger.Process(self, line)
 
+# Get all the burn.bin files for platform build
+# base:  Base of the BIOS tree to be purged
+# plat:  Platform to purge
+# btype: build type to purge
+# returns nothing
+def GetBurnBins(base, plat, btype):
+  spec = "Build\\Images\\" + plat + "\\" + btype + "\\" + plat + "*burn.bin"
+  return glob.glob(os.path.join(base, spec))
+
 # Build command hanlder
 # returns 0 on success, DOES NOT RETURN otherwise
 def build():
@@ -100,6 +107,7 @@ def build():
 
   # Execute build command
   cmd       = 'hpbuild.bat -b {0} -P {1} --UDRIVE'.format(btype, name)
+  upload    = False
   if opts['upload']:
     bmc = GetBmcInfo()
     if not bmc:
@@ -109,18 +117,23 @@ def build():
     # Handle iLO
     if bmc['bmc'] == 'iLO':
       cmd = cmd + ' -I {0}'.format(bmc['ip'])
+
     # Handle OpenBMC
     else:
-     ErrorMessage('Upload to OpenBMC is TBD!')
- #      upload = True
+      # Remove any burn.bin files that may confuse things
+      for filePath in GetBurnBins(directory, name, btype):
+        os.remove(filePath)
+      upload = True
 
   print('Executing: {0}'.format(cmd))
   try:
-    rc      = FilterCommand(cmd, bld.Process, directory)
+    rc = FilterCommand(cmd, bld.Process, directory)
 
-#    if upload:
-#      cmd = "scp Build\\Images\\" + btype + "\\" + name + "*burn.bin root@" + bmc['ip'] + ":/tmp/bios.rom"
-#      RunCommand(cmd, directory)
+    if not rc and upload:
+      burnBins = GetBurnBins(directory, name, btype)
+      script = '{0}\\upload.ps1'.format(os.path.dirname(os.path.abspath(__file__)))
+      command = 'powershell.exe -File {0} "{1}" {2} {3} {4}'.format(script, burnBins[0], bmc['ip'], bmc['user'], bmc['password'])
+      rc2 = DoCommand('Uploading BIOS Image', 'Upload', command, directory)
 
     # Send email alert (if enabled)
     if GetAlert():
@@ -129,10 +142,18 @@ def build():
       email = data.gbl.GetItem('email')  # Email does not have to be set
       if (email):
 
+        commands = []
+
         # Global email is set
         script = '{0}\\send.ps1'.format(os.path.dirname(os.path.abspath(__file__)))
-        command = 'powershell.exe -File {0} {1} "{2}<eom>" ""'.format(script, email, 'successful!' if rc == 0 else 'FAILED!')
-        PostBIOS([command])
+        command = 'powershell.exe -File {0} {1} "{2}<eom>" ""'.format(script, email, 'Build successful!' if rc == 0 else 'Build FAILED!')
+        commands.append(command)
+
+        if upload:
+          command = 'powershell.exe -File {0} {1} "{2}<eom>" ""'.format(script, email, 'Upload successful!' if rc2 == 0 else 'Upload FAILED!')
+          commands.append(command)
+        
+        PostBIOS(commands)
 
   except KeyboardInterrupt:
     pass

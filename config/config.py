@@ -56,9 +56,9 @@ def ValidatePath(path):
   valid = True
   for i in range(pos, size):
     val = path[i]
-    # Character can be alpha numeric or a space, period, underscore, slash or backlash
+    # Character can be alpha numeric or a space, period, underscore, slash, backlash, or parens
     if val.isalnum(): continue
-    if val in '_. \/\\\(\)':  continue
+    if val in ' ._/\\()':  continue
     # Found invalid character
     valid = False
     break
@@ -143,7 +143,7 @@ def SetItem(item, local, readonly, value):
 
     # Validate BMC items
     elif item == 'bmc':
-      values = value.split(',')
+      values = value.split(';')
       # Get the BMC type
       bmc    = values[0].strip().lower()
       if not bmc.lower() in ['ilo', 'openbmc']:
@@ -165,11 +165,11 @@ def SetItem(item, local, readonly, value):
       # Put it all back together
       value = bmc
       if ip:
-        value += ',' + ip
+        value += ';' + ip
       if user:
-        value += ',' + user
+        value += ';' + user
       if pswd:
-        value += ',' + pswd
+        value += ';' + pswd
 
   # Set the item
   hndlr = data.lcl.SetItem if local else data.gbl.SetItem
