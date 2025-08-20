@@ -5,6 +5,7 @@ import io
 import os
 import sys
 from   subprocess import PIPE, Popen, run, STDOUT
+from   wakepy import keep
 
 # Local modules
 from announce   import Announce
@@ -32,8 +33,9 @@ def RunCommand(command, directory = None):
   # Move to indicated directory
   saved = SetDirectory(directory)
   # Execute command in another process
-  process = Popen(command.split(' '), stdout=PIPE, stderr=STDOUT)
-  output = process.communicate()[0]
+  with keep.running():
+    process = Popen(command.split(' '), stdout=PIPE, stderr=STDOUT)
+    output = process.communicate()[0]
   # Restore original directory
   SetDirectory(saved)
   return (process.returncode, output)
@@ -46,13 +48,15 @@ def RunCommand(command, directory = None):
 def RunCommands(executable, commands, directory = None, log=None):
   # Move to indicated directory
   saved = SetDirectory(directory)
-  process = Popen(executable, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-  if (isinstance(commands, list)):
-    for cmd in commands:
-      process.stdin.write(cmd);
-  else:
-    process.stdin.write(commands);
-  output = process.communicate()[0]
+  # Execute commands in another process
+  with keep.running():
+    process = Popen(executable, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+    if (isinstance(commands, list)):
+      for cmd in commands:
+        process.stdin.write(cmd);
+    else:
+      process.stdin.write(commands);
+    output = process.communicate()[0]
   # Restore original directory
   SetDirectory(saved)
   return (process.returncode, output)
@@ -69,15 +73,16 @@ def FilterCommand(command, filter = NoFilter, directory = None, log=None):
   # Open log file
   if log: logFile = open(log, 'w')
   # Execute command in another process
-  process = Popen(command.split(' '), stdout=PIPE, stderr=STDOUT)
-  # Handle command output
-  while True:
-    line = process.stdout.readline()
-    if not line and process.poll() is not None: break
-    if line:
-      filter(line)
-      if log: logFile.write(line.decode('utf-8') if type(line) is bytes else line)
-  returncode = process.poll()
+  with keep.running():
+    process = Popen(command.split(' '), stdout=PIPE, stderr=STDOUT)
+    # Handle command output
+    while True:
+      line = process.stdout.readline()
+      if not line and process.poll() is not None: break
+      if line:
+        filter(line)
+        if log: logFile.write(line.decode('utf-8') if type(line) is bytes else line)
+    returncode = process.poll()
   # Close log file
   if log: logFile.close()
   # Restore original directory
@@ -125,7 +130,8 @@ def DoCommand(operation, completion, command, directory = None):
     print('=== {0} ... Please be patient this could take a while ... ==='.format(operation))
     print(equalLine)
     print('Command: {0}'.format(command))
-    result = run(command, cwd=directory).returncode
+    with keep.running():
+      result = run(command, cwd=directory).returncode
     print('')
     msg   = completion + ' ' + ('FAILED!' if (result) else 'Passed!')
     Announce(msg, '!' if (result) else '*')

@@ -34,7 +34,7 @@ if ($LASTEXITCODE -ne 0) {
 # Use open BMC console to turn on host power
 plink -batch -ssh ${user}@${ip} -pw $pswd  "${turnHostPowerOn}"
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: Unable to turn on hosst power image!"
+    Write-Host "ERROR: Unable to turn on host power image!"
     exit 4
 }
 

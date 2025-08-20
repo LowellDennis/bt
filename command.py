@@ -4,7 +4,6 @@
 import os
 import sys
 import importlib.util
-from   wakepy import keep
 
 # Local modules
 import data
@@ -63,7 +62,6 @@ class Command:
   # Runs the command
   # returns nothing
   def Run(self):
-    with keep.running():
       self.code()
 
 # Gets command information

@@ -10,7 +10,7 @@ if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
 }
 
 # Connect to Microsoft Graph (first run will prompt for login)
-Connect-MgGraph -Scopes -NoWelcome "Mail.Send"
+Connect-MgGraph -NoWelcome -Scopes "Mail.Send"
 
 # Get the signed-in user ID (UPN)
 $user = (Get-MgContext).Account
