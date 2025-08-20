@@ -114,6 +114,7 @@ Do the following
 | Verizon           | [insert 10-digit number]@vtext.com                   |
 | Virgin Mobile     | [insert 10-digit number]@vmobl.com                   |
 | Republic Wireless | [insert 10-digital number]@text.republicwireless.com |
+|-------------------|------------------------------------------------------|
 
 To see the global and local settings for a BIOS source tree
 ~~~
@@ -148,7 +149,11 @@ The main program is 'bt.cmd'
 ### Version History ###
 | Version | Explanation                                                                            |
 |---------|----------------------------------------------------------------------------------------|
-| V0.4	  | Revamped help text to be more consistent and informative                               |
+| V0.4	  | Big update                                                                             |
+|         | - Revamped help text to be more consistent and informative                             |
+|         | - Added use of wakepy to keep from sleeping during long operations                     | 
+|         | - Updated send.ps1 to work with new version of Outlook (no COM)                        | 
+|         | - Added support for uploading BIOS image after build with iLO and OpenBMC              |
 |---------|----------------------------------------------------------------------------------------|
 | V0.3	  | Fixed a few minor bugs                                                                 |
 |---------|----------------------------------------------------------------------------------------|
