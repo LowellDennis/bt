@@ -26,8 +26,12 @@ def DisplayItem(item, local):
       value = items[0]
       extra = items[1:]
     elif item == 'worktrees':
-      extra = value[1:]
-      value = value[0]
+      if len(value)>0:
+        extra = value[1:]
+        value = value[0]
+      else:
+        value = ''
+        extra = []
   # Display it
   print('  {0}.{1:<15}  = "{2}"'.format('local' if local else 'global', item, value))
   if extra:
