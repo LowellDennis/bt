@@ -53,7 +53,7 @@ def destroy():
     cmds += PostCMD(cmd, 'Removing worktree', 'Destroy Worktree')
 
     # Handle removal of associate branch (unless instructed to leave it)
-    if not opts['keepbranch'] and branch:
+    if not opts['keep'] and branch:
       cmds.append('git branch -D {0}'.format(branch))
 
     PostBIOS(cmds)
