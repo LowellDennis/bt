@@ -23,6 +23,11 @@ def detach():
   info = GetVCSInfo(data.gbl.repos, tgt.lower(), 'repository', True)
   # Does not return on error
 
+  # Make sure it found something
+  if not info:
+      print('No repository found to detach')
+      return
+
   # Remove it!
   repo = info.VCS().Base()
   print('Detaching: {0}'.format(repo))
