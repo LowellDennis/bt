@@ -8,7 +8,7 @@ Param(
 # OpenBMC console commands to do different things
 $turnHostPowerOff = "busctl set-property  xyz.openbmc_project.State.Chassis /xyz/openbmc_project/state/chassis0 xyz.openbmc_project.State.Chassis RequestedPowerTransition s xyz.openbmc_project.State.Chassis.Transition.Off"
 $turnHostPowerOn  = "busctl set-property  xyz.openbmc_project.State.Host /xyz/openbmc_project/state/host0 xyz.openbmc_project.State.Host RequestedHostTransition s xyz.openbmc_project.State.Host.Transition.On"
-$flashBiosImage   = "flashcp -v /tmp/bios.rom /dev/mtd/host-prime && dd if=/tmp/bios.rom of=/dev/mtd/vrom-prime"
+$flashBiosImage   = "flashcp -v /tmp/bios.rom /dev/mtd/by-name/host-prime && dd if=/tmp/bios.rom of=/dev/mtd/by-name/vrom-prime"
 
 # Use OpenBMC Console to force the remote host power off
 plink -batch -ssh ${user}@${ip} -pw $pswd  "${turnHostPowerOff}"
