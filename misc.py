@@ -19,12 +19,22 @@ def FixStr(item):
     return str(item, 'utf-8')
   return item
 
-# Fixup a path string for proper OS support
+# Fixup a path string (in case wrong slashes are used)
+# path: Path String to be fixed
+# forceWindows: If True, force Windows style path
+# returns Fixed-up string
+def FixPath(path, forceWindows=False):
+  if data.gbl.platform == 'Windows' or forceWindows:
+    path = path.replace('/', '\\')          # Replace slashes with backslashes on Windows
+  else:
+    path = path.replace('\\', '/')          # Replace backslashes with slashes on Linux/Mac
+  return path
+
+# Fixup a branch string (in case wrong slashes are used)
 # path: Path String to be fixed
 # returns Fixed-up string
-def FixPath(path):
-  if data.gbl.platform == 'Windows':
-    path = path.replace('/', '\\')          # Replace slashes with backslashes
+def FixBranch(path):
+  path = path.replace('\\', '/')          # Replace backslashes with slashes in branch names
   return path
 
 # Return the build type indicated by the local setting releae

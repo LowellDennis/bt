@@ -11,6 +11,7 @@ from error    import ErrorMessage, UsageError
 from cmdline  import ParseCommandLine
 from postbios import PostBIOS
 from run      import DoCommand
+from misc     import FixPath, FixBranch
 from vcs      import GetVCSInfo, DoesBranchExist
 
 # Global variables
@@ -41,10 +42,10 @@ def create():
     # DOES NOT RETURN
 
   # Get parameters (with defaults)
-  Branch    = Prms[0].replace("\\", "/") # Enforce that branches have slashes not backslashes
-  Worktree  = Prms[1]
+  Branch    = FixBranch(Prms[0])
+  Worktree  = FixPath(Prms[1])
   Abstree   = os.path.abspath(Worktree)
-  Commitish = "HEAD" if len(Prms) < 3 else Prms[2]
+  Commitish = "HEAD" if len(Prms) < 3 else FixBranch(Prms[2])
 
   # Make sure target directory does not exist
   if os.path.exists(Abstree):

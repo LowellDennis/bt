@@ -34,7 +34,7 @@ def FindPlatformPackage(top, platform):
   target = platform.lower() + 'pkg'
   for path in PRODUCT_PATHS:
     if data.gbl.platform == 'Windows':
-      path = path.replace('/', '\\')  # Fix slashes
+      path = FixPath(path, True)
     base = os.path.join(top, path)
     for rootdir, dirs, files in os.walk(base):
       for subdir in dirs:
