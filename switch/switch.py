@@ -9,7 +9,7 @@ import data
 from cmdline  import ParseCommandLine
 from error    import ErrorMessage
 from postbios import PostBIOS
-from vcs      import GetVCSInfo, GetRepoFromWorktree
+from vcs      import GetVCSInfo, GetRepoFromWorktree, GetBranchFromWorktree
 
 # Global variables
 Prms = None
@@ -44,12 +44,13 @@ def switch():
       vcs = 'git'
       print('')
       print('  Available worktrees (currently selected worktree has *)')
-      print('  vcs worktree, repository')
+      print('  vcs worktree, repository, branch')
       print('  --- -----------------------------------------------')
       for item in data.gbl.worktrees:
         repo = GetRepoFromWorktree(item)
+        branch = GetBranchFromWorktree(item)
         star = '*' if item == data.gbl.worktree else ' '
-        print('{0} {1} {2}, {3}'.format(star, vcs, item, repo))
+        print('{0} {1} {2}, {3}, {4}'.format(star, vcs, item, repo, branch))
     else:
       print('  No worktrees    (use "bt create" to create one).')
   else:
