@@ -801,10 +801,10 @@ def FindWorkTreeFromPartialPath(partial):
   found  = []
   for worktree in data.gbl.worktrees:   # Loop through worktrees
     match = worktree.lower()
-    # See if partial path matches this worktree exactly
-    if match.startswith(target):
+    # See if current directory is within this worktree
+    if target.startswith(match):
       return worktree
-    # See if partail path is part of worktree
+    # See if partial path is part of worktree
     if target in match:
       found.append(worktree)
   # Was something found?
@@ -817,10 +817,10 @@ def FindWorkTreeFromPartialPath(partial):
   # If not found in worktrees check repositories
   for repo in data.gbl.repos:          # Loop through repos
     match = repo.lower()
-    # See if partial path matches this repo exactly
+    # See if current directory is within this repo
     if target.startswith(match):
       return repo
-    # See if partail path is part of repo
+    # See if partial path is part of repo
     if target in match:
       found.append(repo)
   # Was something found?
