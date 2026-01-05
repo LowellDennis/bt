@@ -80,6 +80,12 @@ class BuildLogger(Logger):
     if b'Building ... ' in line and b'.inf [' in line:
       self.progress.IncrementModule()
     
+    # When we reach image generation phase, set progress to 100%
+    if line.startswith(b'Generate Region at Offset'):
+      if self.progress.modulesBuilt > 0:
+        self.progress.totalModules = self.progress.modulesBuilt
+        self.progress.UpdateProgress()
+    
     if (line.startswith(b'-- Build Ok --')):
       self.passed = True
       # Save actual module count if we have one

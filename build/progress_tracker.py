@@ -2,12 +2,6 @@
 
 # Standard python modules
 import os
-import sys
-
-# Add parent directory to path for dsc_parser import
-import_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, import_dir)
-from dsc_parser import estimate_module_count, MINIMUM_ESTIMATE
 
 class ProgressTracker:
   """Tracks build progress and displays progress bar"""
@@ -93,6 +87,8 @@ class ProgressTracker:
   # returns nothing
   def SaveModuleCount(self, dir, name, count):
     try:
+      if not name:
+        return
       cache_dir = os.path.join(os.path.expanduser('~'), '.bt')
       cache_file = os.path.join(cache_dir, name)
       
@@ -102,30 +98,17 @@ class ProgressTracker:
       # Write the actual count
       with open(cache_file, 'w') as f:
         f.write(str(count))
-    except Exception:
-      pass
+    except Exception as e:
+      # Log error for debugging
+      import sys
+      print(f'\nWarning: Failed to save module count cache: {e}', file=sys.stderr)
   
   # Estimates module count by parsing DSC files
   # dir: Base directory of BIOS tree
   # returns estimated module count
   def EstimateModuleCount(self, dir):
-    try:
-      # Look for platform package directory containing PlatformPkg.dsc
-      # Search pattern: find directory with platform name that contains PlatformPkg.dsc
-      platform_dir = None
-      if self.name:
-        for root, dirs, files in os.walk(dir):
-          # Check if current directory name contains platform name and has PlatformPkg.dsc
-          if self.name.lower() in os.path.basename(root).lower() and 'PlatformPkg.dsc' in files:
-            platform_dir = root
-            break
-      
-      if platform_dir:
-        estimated, unique, total = estimate_module_count(dir, platform_dir)
-        # Estimate already includes 2x buffer
-        return estimated
-    except Exception:
-      pass
-    
-    # Default fallback estimate
-    return MINIMUM_ESTIMATE
+    # Use a reasonable default estimate for UEFI builds
+    # The actual count will be cached after the first build
+    # and dynamic adjustment will handle overruns during build
+    DEFAULT_ESTIMATE = 3000
+    return DEFAULT_ESTIMATE

@@ -3,7 +3,7 @@
 ### What is this repository for? ###
 
 * A tool for working with HPE Server BIOS source code.
-* Current Version is V0.4
+* Current Version is V0.5
 
 ### How do I get set up? ###
 
@@ -148,6 +148,12 @@ The main program is 'bt.cmd'
 
 ### Version History ###
 | Version | Explanation                                                                            |
+|---------|----------------------------------------------------------------------------------------|
+| V0.5	  | Build progress improvements                                                            |
+|         | - Added build progress bar with module count tracking                                  |
+|         | - Dynamic adjustment when actual count exceeds estimate                                |
+|         | - Cache actual module counts for accurate subsequent builds                            |
+|         | - Organized GUI and DSC parser into separate folders                                   |
 |---------|----------------------------------------------------------------------------------------|
 | V0.4	  | Big update                                                                             |
 |         | - Revamped help text to be more consistent and informative                             |
