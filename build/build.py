@@ -16,17 +16,26 @@ from misc     import GetBuildType, GetWarnings, GetBmcInfo, GetAlert
 from postbios import PostBIOS
 from run      import FilterCommand, DoCommand
 
+# Import progress tracker from same directory
+import_dir = os.path.dirname(os.path.abspath(__file__))
+if import_dir not in sys.path:
+    sys.path.insert(0, import_dir)
+from progress_tracker import ProgressTracker
+
 # Logger for the build command
 class BuildLogger(Logger):
 
   # Constructor
   # dir:    Directory for log file
   # warn:   True if warnings are to be logged, False otherwise
+  # name:   Platform name
+  # btype:  Build type (DEBUG or RELEASE)
   # returns nothing
-  def __init__(self, dir, warn = False):
+  def __init__(self, dir, warn = False, name = None, btype = None):
     self.passed = False
     self.warn   = warn
     self.count  = 0
+    self.progress = ProgressTracker(dir, name, btype, width=30)
     self.Load()
     Logger.__init__(self, 'Build.log', 'Building', warn)
 
@@ -65,8 +74,70 @@ class BuildLogger(Logger):
   # returns nothing
   def Process(self, line):
     self.count += 1
-    if (line.startswith(b'-- Build Ok --')): self.passed = True
-    Logger.Process(self, line)
+    
+    # Check if we're processing a module (INF file)
+    # EDK2 build output format: "  Building ... <path>.inf [<arch>]"
+    if b'Building ... ' in line and b'.inf [' in line:
+      self.progress.IncrementModule()
+    
+    if (line.startswith(b'-- Build Ok --')):
+      self.passed = True
+      # Save actual module count if we have one
+      if self.progress.modulesBuilt > 0:
+        self.progress.SaveModuleCount(os.path.dirname(data.lcl.base), self.progress.name, self.progress.modulesBuilt)
+    
+    # Handle line counting and error/warning detection from parent class
+    self.lines += 1
+    decoded_line = line.decode('utf-8')
+    if self.log: self.log.write(decoded_line.rstrip() + '\n')
+    
+    # Check for errors and warnings using parent's regex patterns
+    quick = self.reQuick.search(decoded_line)
+    if quick:
+      error = self.reError.search(decoded_line)
+      if error and self.IsReal('error', decoded_line, error):
+        self.errors += 1
+        self.Print('***  ERROR  ***', decoded_line)
+      elif self.warn:
+        warn = self.reWarn.search(decoded_line)
+        if warn and self.IsReal('warn', decoded_line, warn):
+          self.warnings += 1
+          self.Print('*** WARNING ***', decoded_line)
+    
+    # Update status line with progress bar included
+    # Format: Modules [bar](####/####)##%, Lines #####, Errors #
+    progress_str = self.progress.GetProgressString()
+    
+    # Extract percentage from progress string
+    if '%' in progress_str:
+      pct_match = progress_str.split(']')
+      if len(pct_match) > 1:
+        bar_part = pct_match[0] + ']'  # [████░░░░]
+        pct_part = pct_match[1]         # ##%
+      else:
+        bar_part = progress_str
+        pct_part = ''
+    else:
+      bar_part = progress_str
+      pct_part = ''
+    
+    # Default to empty progress bar if none set yet
+    if not bar_part:
+      bar_part = '[' + ('░' * 30) + ']'
+      pct_part = '0%'
+    
+    msg = '\rModules {0}({1}/{2}){3}, Lines {4}, Errors {5}{6}'.format(
+      bar_part,
+      self.progress.modulesBuilt,
+      self.progress.totalModules,
+      pct_part,
+      self.lines,
+      self.errors,
+      ', Warnings {0}'.format(self.warnings) if self.warn else ''
+    )
+    self.length = len(msg)
+    print(msg, end='', flush=True)
+
 
 # Get all the burn.bin files for platform build
 # base:  Base of the BIOS tree to be purged
@@ -103,7 +174,7 @@ def build():
 
   # Setup for filtering build command
   directory = os.path.dirname(data.lcl.base)
-  bld       = BuildLogger(directory, warning)
+  bld       = BuildLogger(directory, warning, name, btype)
 
   # Execute build command
   cmd       = 'hpbuild.bat -b {0} -P {1} --UDRIVE'.format(btype, name)
