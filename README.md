@@ -153,6 +153,7 @@ The main program is 'bt.cmd'
 |         | - Added build progress bar with module count tracking                                  |
 |         | - Dynamic adjustment when actual count exceeds estimate                                |
 |         | - Cache actual module counts for accurate subsequent builds                            |
+|         | - Fixed worktree detection (top command now works in worktrees)                        |
 |         | - Organized GUI and DSC parser into separate folders                                   |
 |---------|----------------------------------------------------------------------------------------|
 | V0.4	  | Big update                                                                             |
