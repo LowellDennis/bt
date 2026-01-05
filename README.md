@@ -154,7 +154,7 @@ The main program is 'bt.cmd'
 |         | - Dynamic adjustment when actual count exceeds estimate                                |
 |         | - Cache actual module counts for accurate subsequent builds                            |
 |         | - Fixed worktree detection (top command now works in worktrees)                        |
-|         | - Organized GUI and DSC parser into separate folders                                   |
+|         | - Organized GUI and VS Code extension into separate folders                            |
 |---------|----------------------------------------------------------------------------------------|
 | V0.4	  | Big update                                                                             |
 |         | - Revamped help text to be more consistent and informative                             |
