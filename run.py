@@ -4,6 +4,8 @@
 import io
 import os
 import sys
+import threading
+import queue
 from   subprocess import PIPE, Popen, run, STDOUT
 from   wakepy import keep
 
@@ -68,20 +70,40 @@ def RunCommands(executable, commands, directory = None, log=None):
 # log        - File in which to log the output
 # returns the return code of the command that was execuated
 def FilterCommand(command, filter = NoFilter, directory = None, log=None):
+  # Helper function to read lines from process into a queue
+  def enqueue_output(out, queue):
+    for line in iter(out.readline, b''):
+      queue.put(line)
+    out.close()
+  
   # Move to indicated directory
   saved = SetDirectory(directory)
   # Open log file
   if log: logFile = open(log, 'w')
   # Execute command in another process
   with keep.running():
-    process = Popen(command.split(' '), stdout=PIPE, stderr=STDOUT)
-    # Handle command output
+    process = Popen(command, stdout=PIPE, stderr=STDOUT, shell=True)
+    # Create a queue and thread to read output
+    q = queue.Queue()
+    t = threading.Thread(target=enqueue_output, args=(process.stdout, q))
+    t.daemon = True
+    t.start()
+    
+    # Handle command output with timeout for periodic updates
     while True:
-      line = process.stdout.readline()
-      if not line and process.poll() is not None: break
-      if line:
+      # Try to get a line with a timeout
+      try:
+        line = q.get(timeout=1.0)  # 1 second timeout
         filter(line)
         if log: logFile.write(line.decode('utf-8') if type(line) is bytes else line)
+      except queue.Empty:
+        # No output available, check if process is still running
+        if process.poll() is not None:
+          break
+        # Force a status update even with no new output
+        # Pass None to signal a timeout update
+        filter(None)
+    
     returncode = process.poll()
   # Close log file
   if log: logFile.close()
