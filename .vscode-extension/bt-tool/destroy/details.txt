@@ -1,0 +1,30 @@
+Description
+-----------
+Deletes a BIOS worktree and removes it from the list of worktrees.
+
+Usage
+-----
+bt destroy /keep [path]
+   /keep: Do not delete the branch associated with the worktree.
+   path:  Path associated with BIOS worktree to be deleted
+          (Defaults to current directory.)
+
+Steps
+-----
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. The target directory is the path, if provided,
+   or the current directory if not.
+3. Determine the top directory of the target repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not a worktree!
+  c. Error: if the top is not in the list of worktrees!
+4. From the parent repository of the worktree,
+  a. Delete the worktree (use --force).
+  b. If /keep was not given, delete the branch associated with the worktree.
+5. Change directory to the parent repository,
+   if the starting directory no longer exists.
+
+See also
+--------
+create, pull, push, switch

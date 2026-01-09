@@ -1,0 +1,63 @@
+Description
+-----------
+Get or set BIOS tool configuration settings.
+
+Usage
+-----
+bt config [<setting> [<value> | /default]]
+  setting:   BIOS tool configuration setting of interest.
+   value:    Value to be assigned to BIOS tool configuration setting.
+   /default: Set indicated setting to its default value (usually "").
+
+Steps
+-----
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. If no parameters are given,
+  a. Show the current values for all settings.
+3. Otherwise, validate the given setting name. 
+  a. If only the setting is given,
+    i. Show the current value of the given setting.
+  b. Otherwise, if the default option is used,
+    i. Set the given setting to its default value (usually "").
+  c. Otherwise, validate the indicated value.
+    i. Set the setting to the indicated value.
+
+See also
+--------
+attach, build, clean, create, destroy, detach, init, move, select, switch
+
+Global Read-Only Settings
+-------------------------
+last         Last repo/wortree used          (Set by many commands)
+repo         Currently selected repository   (Set by many commands)
+repositories Path like list of supported repositories
+             (Modified by attach and detach commands)
+worktree     Currently selected worktree     (Set by many commands)
+worktrees    List of supported worktrees
+             (Modified by create, destroy, and move commands)
+
+Local Read-Only Settings
+------------------------
+branch       Branch associated with worktree (Set by create command)
+cpu          CPU type                        (Set by init command)
+name         Platform name                   (Set by init command)
+platform     Path to platformpkg directory   (Set by init command)
+vendor       CPU vendor name                 (Set by init command)
+
+Global Configurable Settings
+----------------------------
+email        Email address to alert on BIOS build completion
+             (Default: "" - disables notification)
+
+Local Configurable Settings
+---------------------------
+alert        Controls BIOS build completion notification feature
+             (on: alert, off or ""(default): no alert)
+bmc          Type, IP address, and credentials of the BMC for the current platform
+             Format: ilo|openbmc,<ip-address>,<username>,<password>
+             (Default: "" - disables bmc communication)
+release      Controls type of build that occurs
+             (on: release build, off or ""(default): debug build)
+warnings     Controls whether warnings are shown in build output
+             (on: warnings shown, off or ""(default): warnings ignored)

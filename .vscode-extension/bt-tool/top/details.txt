@@ -1,0 +1,19 @@
+Description
+-----------
+Change directory to the top of the BIOS repository or worktree.
+
+Usage
+-----
+bios top
+
+Steps
+-----
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. Change directory to the top of the current repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+
+See also
+--------
+attach, create, destroy, detach, select, switch

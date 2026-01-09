@@ -1,0 +1,28 @@
+Description
+-----------
+Move a BIOS worktree.
+
+Usage
+-----
+bt move <destination> [<path>]
+  destination: Destination path to which to move the worktree
+  path:        Source path of the worktree to be moved
+               (default moves current directory)
+
+Steps
+-----
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. The target directory is the path, if provided,
+   or the current directory if not.
+3. Determine the top directory of the target repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not a worktree!
+  c. Error: if the top is not in the list of worktrees!
+  d. Error: if the destination directory already exists or is invalid.
+4. Move the worktree to the destination directory.
+5. Change the directory to the updated starting directory if it has moved.
+
+See also
+--------
+create, destroy, switch

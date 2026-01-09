@@ -1,0 +1,26 @@
+Description
+-----------
+Initialize the local settings for the current BIOS repository or worktree.
+
+Usage
+-----
+bt init <name>
+   name: BIOS platform name for current BIOS worktree
+         (This is something like U66, A55, or R13)
+
+Steps
+-----
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. Determine the top directory of the target repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+3. Set the local name to the value supplied for name.
+4. Use the name to detect the local values for platform, vendor, and cpu.
+5. For local values for alert, release, and warnings,
+  a. If the value is not set or is invalid,
+    i. Set the value to off.
+
+See also
+--------
+build

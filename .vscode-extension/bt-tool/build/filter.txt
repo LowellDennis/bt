@@ -1,0 +1,16 @@
+\bCompilation complete\b
+\bCompilation successful\b
+\bcl\.exe\b
+\blib\.exe\b
+\bml\.exe\b
+\b[a-zA-Z0-9_]*(error|fail)[a-zA-Z0-9_]*\.(c|h|asm|aml)\b
+\bFAILURE TO WRITE PROTECT\b
+\bcheck PIRQ\b
+\bDOMDoc->load\b
+\bERROR: Search string not found!\b
+(Building|GenFw|copy|if exist).+ErrorLog
+(Link.exe).+ErrorLog
+Error[a-zA-Z0-9_]+.(map|pdb|inf|dll|efi|depex)
+Error(Control|InformationApp)\\
+\bmight be in error\b
+\bEdk2/BaseTools/Bin/Win32/FitGen.exe not found!\b

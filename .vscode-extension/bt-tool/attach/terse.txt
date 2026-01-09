@@ -1,0 +1,1 @@
+Add a BIOS repository to the list of repositories.

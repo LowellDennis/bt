@@ -1,0 +1,27 @@
+Description
+-----------
+Remove a BIOS repository from the list of repositories.
+
+Usage
+-----
+bt detach [<path>]
+   path:  Path associated with BIOS repository to be detached
+          (defaults to current directory)
+
+Steps
+-----
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. The target directory is the path, if provided,
+   or the current directory if not.
+3. Determine the top directory of the target repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not a repository!
+  c. Error: if the top is not in the list of repositories!
+4. Remove the repository from the list of repositories.
+5. If the currently selected repository is the one that was removed,
+   select a new one.
+
+See also
+--------
+attach, pull, push, select, switch

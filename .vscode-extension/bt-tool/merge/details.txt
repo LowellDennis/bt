@@ -1,0 +1,27 @@
+Description
+-----------
+Merge updates from an upstream location into a local repository or worktree.
+
+Usage
+-----
+bt merge [/target <path>] commit-ish
+  path        Repository or worktree into which to perform the merge operation
+              (if path is not specified, the current directory is used)
+  commit-ish  Commit ID, tag, or branch to be merged
+
+Steps
+-----
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. The target directory is the path, if provided,
+   or the current directory if not.
+3. Determine the top directory of the target repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+  c. Error: if the repository or worktree has uncommitted changes!
+  d. Error: if commit-ish does not exist!
+4. Perform the merge command.
+
+See also
+--------
+pull, push, select, switch, update

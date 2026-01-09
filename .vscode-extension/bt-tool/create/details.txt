@@ -1,0 +1,33 @@
+Description
+-----------
+Creates a new BIOS worktree and adds it to the list of worktrees.
+
+Usage
+-----
+bt create [/repo <path>] <branch> <worktree> [<commit-ish>]
+   /repo:      The path to the repository from which to create the BIOS worktree.
+               (The default is the currently selected repository.)
+   branch:     The branch name for the new BIOS worktree.
+   commit-ish: Commit ID, tag, or branch on which the new worktree branch is to be based.
+               (The default is HEAD.)
+   worktree:  The directory path where the worktree is to be created
+
+Steps
+-----
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. The target directory is the path, if provided,
+   or the current directory if not.
+3. Determine the top directory of the target repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not a repository!
+  c. Error: if the top is not in the list of repositories!
+  d. Error: If the branch already exists.
+  e. Error: If the worktree is already in the list of worktrees.
+  f. Error: If commit-ish does not exist.
+4. Create a new BIOS worktree from <top>@<commit-ish> in <worktree> with named <branch>.
+5. Change directory to worktree.
+
+See also
+--------
+destroy, push, pull, switch

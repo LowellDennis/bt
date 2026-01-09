@@ -1,0 +1,1 @@
+Deletes a BIOS worktree and removes it from the list of worktrees.

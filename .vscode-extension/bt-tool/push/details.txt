@@ -1,0 +1,25 @@
+Description
+-----------
+Push updates from a local repository or worktree to its remote location.
+
+Usage
+-----
+bt push [<path>]
+  path: path to repository or worktree on which to perform the push operation
+        (if path  is not given, the current directory is used)
+
+Steps
+-----
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. The target directory is the path, if provided,
+   or the current directory if not.
+3. Determine the top directory of the target repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+  c. Error: if the top is an SVN repository!
+4. Perform the push operation.
+
+See also
+--------
+pull, select, switch
