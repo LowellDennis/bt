@@ -2,6 +2,7 @@ alert
 bmc
 *branch,   {0} create
 *cpu,      {0} init
+itp
 *name,     {0} init
 *platform, {0} init
 release

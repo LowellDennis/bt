@@ -12,7 +12,7 @@ from announce import Announce
 from cmdline  import ParseCommandLine
 from error    import ErrorMessage
 from logger   import Logger
-from misc     import GetBuildType, GetWarnings, GetBmcInfo, GetAlert
+from misc     import GetBuildType, GetWarnings, GetBmcInfo, GetAlert, GetITP
 from postbios import PostBIOS
 from run      import FilterCommand, DoCommand
 
@@ -35,7 +35,7 @@ class BuildLogger(Logger):
     self.passed = False
     self.warn   = warn
     self.count  = 0
-    self.progress = ProgressTracker(dir, name, btype, width=30)
+    self.progress = ProgressTracker(dir, name, btype, width=40)
     self.Load()
     Logger.__init__(self, 'Build.log', 'Building', warn)
 
@@ -70,9 +70,16 @@ class BuildLogger(Logger):
           self.regex.append(re.compile(pattern.rstrip(), re.IGNORECASE))
 
   # Processes a line of output
-  # line:   Line of output
+  # line:   Line of output (or None for timeout update)
   # returns nothing
   def Process(self, line):
+    # Handle timeout updates (when line is None)
+    if line is None:
+      # Check if we should force an update based on elapsed time
+      if self.progress.ShouldForceUpdate():
+        self.UpdateStatusLine()
+      return
+    
     self.count += 1
     
     # Check if we're processing a module (INF file)
@@ -80,20 +87,18 @@ class BuildLogger(Logger):
     if b'Building ... ' in line and b'.inf [' in line:
       self.progress.IncrementModule()
     
-    # When we reach image generation phase, set progress to 100%
-    if line.startswith(b'Generate Region at Offset'):
-      if self.progress.modulesBuilt > 0:
-        self.progress.totalModules = self.progress.modulesBuilt
-        self.progress.UpdateProgress()
-    
-    if (line.startswith(b'-- Build Ok --')):
+    if line.startswith(b'- Done -') or line.startswith(b'-- Build Ok --'):
       self.passed = True
-      # Save actual module count if we have one
-      if self.progress.modulesBuilt > 0:
-        self.progress.SaveModuleCount(os.path.dirname(data.lcl.base), self.progress.name, self.progress.modulesBuilt)
     
     # Handle line counting and error/warning detection from parent class
     self.lines += 1
+    self.progress.linesProcessed = self.lines
+    
+    # Update progress based on line count
+    if self.progress.linesProcessed > self.progress.totalLines:
+      self.progress.totalLines = self.progress.linesProcessed + int(self.progress.linesProcessed * 0.1)
+    self.progress.UpdateProgress()
+    
     decoded_line = line.decode('utf-8')
     if self.log: self.log.write(decoded_line.rstrip() + '\n')
     
@@ -110,34 +115,55 @@ class BuildLogger(Logger):
           self.warnings += 1
           self.Print('*** WARNING ***', decoded_line)
     
+    # Always update the status line
+    self.UpdateStatusLine()
+  
+  # Save progress data to cache (only called on successful builds)
+  # returns nothing
+  def SaveProgress(self):
+    if self.lines > 0:
+      # Force progress to 100% now that build is complete
+      self.progress.totalLines = self.progress.linesProcessed
+      self.progress.UpdateProgress()
+      self.UpdateStatusLine()
+      print()  # Final newline after progress bar
+      # Save the actual line count for next build
+      self.progress.SaveLineCount(os.path.dirname(data.lcl.base), self.progress.name, self.lines)
+  
+  # Update the status line with progress information
+  # returns nothing
+  def UpdateStatusLine(self):
     # Update status line with progress bar included
-    # Format: Modules [bar](####/####)##%, Lines #####, Errors #
+    # Format: mm:ss, ####:#####/##### bar##%, Error #
     progress_str = self.progress.GetProgressString()
+    elapsed_str = self.progress.GetElapsedTime()
     
-    # Extract percentage from progress string
+    # Extract bar and percentage from progress string (no brackets now)
     if '%' in progress_str:
       pct_match = progress_str.split(']')
       if len(pct_match) > 1:
-        bar_part = pct_match[0] + ']'  # [████░░░░]
-        pct_part = pct_match[1]         # ##%
+        # Old format still has brackets, extract them
+        bar_part = pct_match[0].replace('[', '')  # ████░░░░
+        pct_part = pct_match[1]                    # ##%
       else:
-        bar_part = progress_str
-        pct_part = ''
+        bar_part = progress_str.replace('%', '')
+        pct_part = '%'
     else:
       bar_part = progress_str
       pct_part = ''
     
     # Default to empty progress bar if none set yet
-    if not bar_part:
-      bar_part = '[' + ('░' * 30) + ']'
+    if not bar_part or '[' in bar_part:
+      bar_part = '░' * 40
       pct_part = '0%'
     
-    msg = '\rModules {0}({1}/{2}){3}, Lines {4}, Errors {5}{6}'.format(
-      bar_part,
+    msg = '\r{0}, {1}:{2}/{3} {4}{5}, Error {6}{7}'.format(
+      elapsed_str,
       self.progress.modulesBuilt,
-      self.progress.totalModules,
-      pct_part,
       self.lines,
+      self.progress.totalLines,
+      bar_part,
+      pct_part,
       self.errors,
       ', Warnings {0}'.format(self.warnings) if self.warn else ''
     )
@@ -158,7 +184,7 @@ def GetBurnBins(base, plat, btype):
 # returns 0 on success, DOES NOT RETURN otherwise
 def build():
   # Get command line information
-  prms, opts = ParseCommandLine({'debug': False, 'release': False, 'warnings': False, 'upload': False}, 0)
+  prms, opts = ParseCommandLine({'debug': False, 'release': False, 'warnings': False, 'upload': False, 'itp': False}, 0)
   # DOES NOT RETURN if invalid options or parameters are found
 
   # Validate options
@@ -178,12 +204,18 @@ def build():
   warning  = GetWarnings()
   if opts['warnings']: warning = True
 
+  # Get ITP setting
+  itp = GetITP()
+  if opts['itp']: itp = True
+
   # Setup for filtering build command
   directory = os.path.dirname(data.lcl.base)
   bld       = BuildLogger(directory, warning, name, btype)
 
   # Execute build command
   cmd       = 'hpbuild.bat -b {0} -P {1} --UDRIVE'.format(btype, name)
+  if itp:
+    cmd = cmd + ' -D TXT_ACM_PRODUCTION=FALSE'
   upload    = False
   if opts['upload']:
     bmc = GetBmcInfo()
@@ -205,6 +237,10 @@ def build():
   print('Executing: {0}'.format(cmd))
   try:
     rc = FilterCommand(cmd, bld.Process, directory)
+    
+    # Save progress if build was successful
+    if rc == 0 and bld.passed:
+      bld.SaveProgress()
 
     if not rc and upload:
       print('')

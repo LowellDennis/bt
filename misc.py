@@ -10,7 +10,19 @@ from   error import ErrorMessage
 from   run   import RunCommand
 
 ipv4 = re.compile('^(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
-
+# Normalize a setting value to on/off and return appropriate result
+# value:     Value to check (can be None or empty string)
+# onResult:  Value to return if setting is "on"
+# offResult: Value to return if setting is "off"
+# returns:   onResult or offResult based on normalized value
+def NormalizeSetting(value, onResult, offResult):
+  if not value:
+    return offResult
+  lower_value = value.lower()
+  if lower_value in ['on', 'enabled', 'true', 'yes', '1']:
+    return onResult
+  else:
+    return offResult
 # Fixup a string
 # item:   String to be fixed
 # returns Fixed-up string
@@ -40,24 +52,26 @@ def FixBranch(path):
 # Return the build type indicated by the local setting releae
 # returns one of 'DEBUG' or 'RELEASE'
 def GetBuildType():
-  release  = data.lcl.GetItem('release')    # Release does not have to be set
-  if not release:
-    release = 'off'
-  return 'RELEASE' if release.lower() == 'on' else 'DEBUG'
+  release = data.lcl.GetItem('release')    # Release does not have to be set
+  return NormalizeSetting(release, 'RELEASE', 'DEBUG')
 
 # Return the setting indicated by the local setting warnings
-# returns True if warnings is set to TRUE, False otherwise
+# returns True if warnings is set to on, False otherwise
 def GetWarnings():
   warning = data.lcl.GetItem('warnings')    # Warnings does not have to be set
-  if warning == None: warning == 'FALSE'
-  return True if warning.upper() == 'TRUE' else False
+  return NormalizeSetting(warning, True, False)
 
 # Return the setting indicated by the local setting alert
-# returns True if alert is set to TRUE, False otherwise
+# returns True if alert is set to on, False otherwise
 def GetAlert():
   alert = data.lcl.GetItem('alert')       # Alert does not have to be set
-  if alert == None: alert == 'OFF'
-  return True if alert.upper() == 'ON' else False
+  return NormalizeSetting(alert, True, False)
+
+# Return the setting indicated by the local setting itp
+# returns True if itp is set to ON, False otherwise
+def GetITP():
+  itp = data.lcl.GetItem('itp')           # ITP does not have to be set
+  return NormalizeSetting(itp, True, False)
 
 # Validate an IP address
 # returns IP address if OK, does not return otherwise
