@@ -54,7 +54,9 @@ def destroy():
 
     # Handle removal of associate branch (unless instructed to leave it)
     if not opts['keep'] and branch:
-      cmds.append('git branch -D {0}'.format(branch))
+      # Check if branch is used by other worktrees before deleting
+      cmd = 'git worktree list | findstr /I "{0}" >nul || git branch -D {0}'.format(branch)
+      cmds += PostCMD(cmd, 'Removing branch (if not in use)', 'Destroy Branch')
 
     PostBIOS(cmds)
 
