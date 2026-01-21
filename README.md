@@ -3,7 +3,7 @@
 ### What is this repository for? ###
 
 * A tool for working with HPE Server BIOS source code.
-* Current Version is V0.5
+* Current Version is V0.6
 
 ### How do I get set up? ###
 
@@ -148,6 +148,11 @@ The main program is 'bt.cmd'
 
 ### Version History ###
 | Version | Explanation                                                                            |
+|---------|----------------------------------------------------------------------------------------|
+| V0.6	  | VS Code extension and ITP debugger support                                             |
+|         | - Added VS Code extension with full command support and interactive config UI          |
+|         | - Added ITP debugger support with /itp flag                                            |
+|         | - Standardized boolean settings                                                        |
 |---------|----------------------------------------------------------------------------------------|
 | V0.5	  | Build progress improvements                                                            |
 |         | - Added build progress bar with module count tracking                                  |
