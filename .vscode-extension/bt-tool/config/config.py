@@ -10,6 +10,7 @@ import data
 from cmdline  import ParseCommandLine
 from abbrev   import UniqueAbbreviation
 from error    import ErrorMessage, UsageError
+from misc     import NormalizeSetting
 
 rePath = re.compile('([a-z]:)?', re.IGNORECASE)
 
@@ -130,14 +131,18 @@ def SetItem(item, local, readonly, value):
   else:
 
     # Validate on/off items
-    if item in ('alert', 'release', 'warnings'):
-      if   value in ['', 'off', 'disabled', 'false', 'no', 'none']:
+    if item in ('alert', 'release', 'warnings', 'itp'):
+      # Check if value is valid (not empty and normalizable)
+      if value == '':
         value = 'off'
-      elif value in ['on', 'enabled', 'true', 'yes']:
-        value = 'on'
       else:
-        ErrorMessage('Unsupported setting for local.{0}: {1}'.format(item, value))
-        # DOES NOT RETURN
+        # Try to normalize - if it returns 'off' for non-empty input,
+        # verify it was actually a valid "off" value
+        lower_value = value.lower()
+        if lower_value not in ['off', 'disabled', 'false', 'no', 'none', '0', 'on', 'enabled', 'true', 'yes', '1']:
+          ErrorMessage('Unsupported setting for local.{0}: {1}'.format(item, value))
+          # DOES NOT RETURN
+        value = NormalizeSetting(value, 'on', 'off')
 
     # Validate path items
   #  elif item in ('compare', 'editor', 'hdt', 'lauterbach', 'tagger'):

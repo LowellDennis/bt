@@ -38,6 +38,23 @@ Dedicated "BIOS Tool" output channel showing all command output with syntax high
 
 **Note:** The BT tool is bundled with this extension - no separate installation required!
 
+## Development
+
+### Auto-Syncing BT Tool Changes
+
+During development, the bundled BT tool can automatically update when the Python source changes:
+
+```bash
+npm run sync-bt
+```
+
+This watches the parent directory for `.py` file changes and auto-bundles them. See [SYNC.md](SYNC.md) for details.
+
+Alternatively, manually bundle:
+```bash
+npm run bundle-bt
+```
+
 ## Usage
 
 ### Opening a BIOS Workspace

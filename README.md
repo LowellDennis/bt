@@ -3,9 +3,25 @@
 ### What is this repository for? ###
 
 * A tool for working with HPE Server BIOS source code.
-* Current Version is V0.6
+* Current Version is V0.7
 
 ### How do I get set up? ###
+
+#### Using Installers (Recommended)
+
+**Windows:**
+* Download `BIOSTool-<version>-Setup.exe` from releases
+* Run the installer and follow the prompts
+* Optionally install the VS Code extension during setup
+* The installer will add BT to your PATH automatically
+
+**Linux (Debian/Ubuntu):**
+```bash
+sudo dpkg -i biostool_<version>_all.deb
+sudo apt-get install -f  # Fix any dependencies
+```
+
+#### Manual Installation from Source
 
 * To get the source use:
 ```
@@ -14,6 +30,10 @@
 * Make sure the directory where the clone is made is in your path
 * To run you will also need to have Python installed (at least V2.7, but 3+ is suggested)
     * You can get it [here](https://www.python.org/)
+
+#### Building Installers
+
+See [installers/README.md](installers/README.md) for instructions on building installers for Windows and Linux.
 
 ### What does it do? ###
 
@@ -148,6 +168,11 @@ The main program is 'bt.cmd'
 
 ### Version History ###
 | Version | Explanation                                                                            |
+|---------|----------------------------------------------------------------------------------------|
+| V0.7	  | Professional installers for Windows and Linux                                          |
+|         | - Added Inno Setup installer for Windows with VS Code extension auto-install           |
+|         | - Added Debian package for Linux distributions                                         |
+|         | - Automated build scripts for both platforms                                           |
 |---------|----------------------------------------------------------------------------------------|
 | V0.6	  | VS Code extension and ITP debugger support                                             |
 |         | - Added VS Code extension with full command support and interactive config UI          |

@@ -8,7 +8,7 @@ import sys
 import data
 from   error      import ErrorMessage
 from   run        import FilterCommand
-from   misc       import FixPath, FixStr
+from   misc       import FixPath, FixStr, NormalizeSetting
 from   vcs        import AutoSelectRepo, SetWorktree, FindWorkTreeFromPartialPath
 
 # Global constants
@@ -85,6 +85,9 @@ class BIOSSettings:
   # Note: The readonly notion is not enforced here but in the config command
   def SetItem(self, item, value = ''):
     assert item and ((item in self.items) or (item in self.readonly))
+    # Normalize on/off boolean settings
+    if item in ('alert', 'release', 'warnings', 'itp') and value:
+      value = NormalizeSetting(value, 'on', 'off')
     # Set attribute value of item
     setattr(self, item, value)
     # Save value to file

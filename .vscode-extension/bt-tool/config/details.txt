@@ -55,7 +55,7 @@ Local Configurable Settings
 alert        Controls BIOS build completion notification feature
              (on: alert, off or ""(default): no alert)
 bmc          Type, IP address, and credentials of the BMC for the current platform
-             Format: ilo|openbmc,<ip-address>,<username>,<password>
+             Format: ilo|openbmc;<ip-address>;[<username>;<password>]
              (Default: "" - disables bmc communication)
 release      Controls type of build that occurs
              (on: release build, off or ""(default): debug build)

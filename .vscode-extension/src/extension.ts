@@ -172,8 +172,42 @@ export function activate(context: vscode.ExtensionContext) {
 		
 		vscode.commands.registerCommand('BIOSTool.build', async (platform?: Platform) => {
 			// Build command uses currently initialized platform from 'bt init'
+			const buildArgs: string[] = [];
+			
+			// Ask for build options
+			const options = await vscode.window.showQuickPick(
+				[
+					{ label: '$(debug-alt) ITP Debug', description: 'Enable Intel ITP debugger support', picked: false, arg: '/itp' },
+					{ label: '$(warning) Warnings', description: 'Show build warnings', picked: false, arg: '/warnings' },
+					{ label: '$(cloud-upload) Upload', description: 'Upload to BMC after build', picked: false, arg: '/upload' }
+				],
+				{
+					placeHolder: 'Select build options (or press ESC for default build)',
+					canPickMany: true,
+					ignoreFocusOut: false
+				}
+			);
+			
+			// If user cancelled, use defaults (check BMC for auto-upload)
+			if (options === undefined) {
+				const bmcConfigured = await btRunner.isBmcConfigured();
+				if (bmcConfigured) {
+					buildArgs.push('/upload');
+					vscode.window.showInformationMessage('BMC configured - building with /upload');
+				}
+			} else {
+				// Add selected options
+				options.forEach(opt => buildArgs.push(opt.arg));
+				
+				// Show what's enabled
+				if (options.length > 0) {
+					const optNames = options.map(o => o.label.replace(/\$\([^)]+\)\s*/, '')).join(', ');
+					vscode.window.showInformationMessage(`Building with: ${optNames}`);
+				}
+			}
+			
 			// Run in terminal so progress bar displays properly
-			await btRunner.runInTerminal('build');
+			await btRunner.runInTerminal('build', buildArgs);
 		}),
 		
 		vscode.commands.registerCommand('BIOSTool.clean', async (platform?: Platform) => {

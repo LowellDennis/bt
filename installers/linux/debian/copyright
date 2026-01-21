@@ -1,0 +1,16 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: biostool
+Upstream-Contact: Lowell Dennis <lowell.dennis@hpe.com>
+Source: https://github.com/LowellDennis/bt
+
+Files: *
+Copyright: 2024-2026 Hewlett Packard Enterprise
+License: MIT or Proprietary
+ [Add your license text here]
+ This package is proprietary software for HPE internal use.
+ Or if MIT licensed, include the full MIT license text.
+
+Files: debian/*
+Copyright: 2026 Lowell Dennis <lowell.dennis@hpe.com>
+License: MIT or Proprietary
+ Same as above

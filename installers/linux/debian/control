@@ -1,0 +1,22 @@
+Source: biostool
+Section: devel
+Priority: optional
+Maintainer: Lowell Dennis <lowell.dennis@hpe.com>
+Build-Depends: debhelper (>= 10), python3 (>= 3.7), dh-python
+Standards-Version: 4.1.3
+Homepage: https://github.com/LowellDennis/bt
+Vcs-Git: https://github.com/LowellDennis/bt.git
+
+Package: biostool
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, python3 (>= 3.7), git
+Recommends: code
+Suggests: subversion
+Description: HPE Server BIOS development tool
+ BIOS Tool simplifies HPE Server BIOS development by providing:
+  - Minimal setup with automatic worktree detection
+  - Easy navigation in BIOS source trees  
+  - Version control integration (Git/SVN)
+  - Simple BUILD and CLEAN commands with intelligent output filtering
+  - Build completion notifications
+  - VS Code extension for integrated development

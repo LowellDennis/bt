@@ -2,8 +2,12 @@
   "name": "BIOSTool",
   "displayName": "BIOS Tool Integration",
   "description": "VS Code integration for HPE Server BIOS Tool (bt)",
-  "version": "0.0.1",
+  "version": "0.7.0",
   "icon": "biostool.ico",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LowellDennis/bt.git"
+  },
   "engines": {
     "vscode": "^1.107.0"
   },
@@ -128,6 +132,7 @@
   "scripts": {
     "vscode:prepublish": "npm run bundle-bt && npm run package",
     "bundle-bt": "powershell -ExecutionPolicy Bypass -File bundle-bt.ps1",
+    "sync-bt": "powershell -ExecutionPolicy Bypass -File sync-bt.ps1",
     "compile": "npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",

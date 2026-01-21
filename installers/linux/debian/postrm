@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+
+# Post-removal script for biostool
+
+case "$1" in
+    purge|remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        # Clean up any user settings if purging
+        if [ "$1" = "purge" ]; then
+            echo "Removing BIOSTool configuration files..."
+            # User settings are typically in ~/.bt or similar
+            # We don't remove them automatically, but inform the user
+            echo "Note: User configuration files in home directories were not removed."
+            echo "To remove them manually, check for ~/.bt directories."
+        fi
+        ;;
+        
+    *)
+        echo "postrm called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

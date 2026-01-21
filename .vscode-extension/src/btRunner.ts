@@ -52,6 +52,54 @@ export class BTCommandRunner {
     }
     
     /**
+     * Check if local BMC setting is configured
+     */
+    async isBmcConfigured(): Promise<boolean> {
+        try {
+            // Query bt config to check if BMC is configured
+            const bmcValue = await this.getBmcConfig();
+            return bmcValue.length > 0;
+        } catch (err) {
+            console.error('Error checking BMC configuration:', err);
+            return false;
+        }
+    }
+    
+    /**
+     * Check if local ITP setting is enabled
+     */
+    async isItpEnabled(): Promise<boolean> {
+        try {
+            const output = await this.runCommandCapture('config', []);
+            const match = output.match(/local\.itp\s*=\s*"([^"]*)"/i);
+            if (match && match[1].trim()) {
+                const value = match[1].trim().toLowerCase();
+                return ['on', 'enabled', 'true', 'yes', '1'].includes(value);
+            }
+        } catch (err) {
+            console.error('Error checking ITP configuration:', err);
+        }
+        return false;
+    }
+    
+    /**
+     * Check if BMC is configured by running bt config command
+     */
+    private async getBmcConfig(): Promise<string> {
+        try {
+            const output = await this.runCommandCapture('config', []);
+            // Parse output for local.bmc setting
+            const match = output.match(/local\.bmc\s*=\s*"([^"]*)"/i);
+            if (match && match[1].trim()) {
+                return match[1].trim();
+            }
+        } catch (err) {
+            console.error('Error getting BMC config:', err);
+        }
+        return '';
+    }
+    
+    /**
      * Find bt in system PATH
      */
     private findBtInPath(): { path: string, type: 'python' | 'powershell' } | null {
@@ -208,15 +256,19 @@ export class BTCommandRunner {
                 const output = data.toString();
                 this.outputChannel.append(output);
                 
-                // Parse progress
-                const progressMatch = output.match(/Modules.*\((\d+)\/(\d+)\)(\d+)%/);
+                // Parse progress - new format: mm:ss, ####:#####/##### bar##%, Error #
+                // Captures: elapsed time, module count, line count/total, progress bar, percentage, errors
+                const progressMatch = output.match(/(\d+:\d+),\s+(\d+):(\d+)\/(\d+)\s+[^\d]*(\d+)%,\s+Error\s+(\d+)/);
                 if (progressMatch) {
-                    moduleCount = parseInt(progressMatch[1]);
-                    totalModules = parseInt(progressMatch[2]);
-                    const percentage = parseInt(progressMatch[3]);
+                    const elapsedTime = progressMatch[1];
+                    moduleCount = parseInt(progressMatch[2]);
+                    const linesProcessed = parseInt(progressMatch[3]);
+                    const totalLines = parseInt(progressMatch[4]);
+                    const percentage = parseInt(progressMatch[5]);
+                    const errorCount = parseInt(progressMatch[6]);
                     
                     progress.report({
-                        message: `${moduleCount}/${totalModules} (${percentage}%)`,
+                        message: `${moduleCount} modules, ${linesProcessed}/${totalLines} lines (${percentage}%) - ${errorCount} errors`,
                         increment: percentage
                     });
                 }

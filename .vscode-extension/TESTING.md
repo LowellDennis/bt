@@ -144,4 +144,4 @@
 **Testing Date:** _________  
 **Tester:** _________  
 **VS Code Version:** _________  
-**Extension Version:** 0.0.1
+**Extension Version:** 0.7.0

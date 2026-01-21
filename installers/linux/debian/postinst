@@ -1,0 +1,45 @@
+#!/bin/sh
+set -e
+
+# Post-installation script for biostool
+
+case "$1" in
+    configure)
+        echo "BIOSTool has been installed successfully!"
+        echo ""
+        echo "To get started:"
+        echo "  1. Run 'bt --help' to see available commands"
+        echo "  2. cd to a BIOS repository and run 'bt attach'"
+        echo "  3. See /usr/share/doc/biostool/README.md for full documentation"
+        echo ""
+        
+        # Check for VS Code and offer to install extension
+        if command -v code >/dev/null 2>&1; then
+            VSIX_FILE="/usr/share/biostool/BIOSTool-0.7.0.vsix"
+            if [ -f "$VSIX_FILE" ]; then
+                echo "VS Code detected. To install the BIOSTool extension, run:"
+                echo "  code --install-extension $VSIX_FILE"
+                echo ""
+            fi
+        fi
+        
+        # Check for Python 3
+        if ! command -v python3 >/dev/null 2>&1; then
+            echo "WARNING: Python 3 is required but not found."
+            echo "Please install Python 3.7 or later."
+            echo ""
+        fi
+        ;;
+        
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+        
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

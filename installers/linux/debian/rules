@@ -1,0 +1,45 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_install:
+	dh_auto_install
+	# Install BT command files
+	install -d debian/biostool/usr/share/biostool
+	cp -r ../../*.py debian/biostool/usr/share/biostool/
+	cp -r ../../*.txt debian/biostool/usr/share/biostool/
+	cp -r ../../attach debian/biostool/usr/share/biostool/
+	cp -r ../../build debian/biostool/usr/share/biostool/
+	cp -r ../../clean debian/biostool/usr/share/biostool/
+	cp -r ../../config debian/biostool/usr/share/biostool/
+	cp -r ../../create debian/biostool/usr/share/biostool/
+	cp -r ../../destroy debian/biostool/usr/share/biostool/
+	cp -r ../../detach debian/biostool/usr/share/biostool/
+	cp -r ../../init debian/biostool/usr/share/biostool/
+	cp -r ../../merge debian/biostool/usr/share/biostool/
+	cp -r ../../move debian/biostool/usr/share/biostool/
+	cp -r ../../pull debian/biostool/usr/share/biostool/
+	cp -r ../../push debian/biostool/usr/share/biostool/
+	cp -r ../../select debian/biostool/usr/share/biostool/
+	cp -r ../../status debian/biostool/usr/share/biostool/
+	cp -r ../../switch debian/biostool/usr/share/biostool/
+	cp -r ../../top debian/biostool/usr/share/biostool/
+	# Install executable wrapper
+	install -d debian/biostool/usr/bin
+	echo '#!/bin/sh' > debian/biostool/usr/bin/bt
+	echo 'exec python3 /usr/share/biostool/bt.py "$$@"' >> debian/biostool/usr/bin/bt
+	chmod 755 debian/biostool/usr/bin/bt
+	# Install documentation
+	install -d debian/biostool/usr/share/doc/biostool
+	cp ../../README.md debian/biostool/usr/share/doc/biostool/
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -rf debian/biostool
+	find ../.. -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	find ../.. -type f -name "*.pyc" -delete 2>/dev/null || true

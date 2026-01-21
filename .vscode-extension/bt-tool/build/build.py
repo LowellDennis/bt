@@ -12,7 +12,7 @@ from announce import Announce
 from cmdline  import ParseCommandLine
 from error    import ErrorMessage
 from logger   import Logger
-from misc     import GetBuildType, GetWarnings, GetBmcInfo, GetAlert
+from misc     import GetBuildType, GetWarnings, GetBmcInfo, GetAlert, GetITP
 from postbios import PostBIOS
 from run      import FilterCommand, DoCommand
 
@@ -184,7 +184,7 @@ def GetBurnBins(base, plat, btype):
 # returns 0 on success, DOES NOT RETURN otherwise
 def build():
   # Get command line information
-  prms, opts = ParseCommandLine({'debug': False, 'release': False, 'warnings': False, 'upload': False}, 0)
+  prms, opts = ParseCommandLine({'debug': False, 'release': False, 'warnings': False, 'upload': False, 'itp': False}, 0)
   # DOES NOT RETURN if invalid options or parameters are found
 
   # Validate options
@@ -204,12 +204,18 @@ def build():
   warning  = GetWarnings()
   if opts['warnings']: warning = True
 
+  # Get ITP setting
+  itp = GetITP()
+  if opts['itp']: itp = True
+
   # Setup for filtering build command
   directory = os.path.dirname(data.lcl.base)
   bld       = BuildLogger(directory, warning, name, btype)
 
   # Execute build command
   cmd       = 'hpbuild.bat -b {0} -P {1} --UDRIVE'.format(btype, name)
+  if itp:
+    cmd = cmd + ' -D TXT_ACM_PRODUCTION=FALSE'
   upload    = False
   if opts['upload']:
     bmc = GetBmcInfo()

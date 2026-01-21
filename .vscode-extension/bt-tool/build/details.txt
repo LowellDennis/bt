@@ -4,8 +4,10 @@ Build a BIOS for the current BIOS repository or worktree.
 
 Usage
 -----
-bt build [/release | /debug] [/warnings] [/upload]
+bt build [/release | /debug] [/itp] [/warnings] [/upload]
    /debug:    Force building a debug   build.
+   /itp:      Build with TXT_ACM_PRODUCTION=FALSE for Intel ITP debugger support.
+              (By default, the local setting for itp controls this.)
    /release:  Force building a release build.
               (By default, the local setting for release controls what is built.)
    /warnings: Turns on reporting of warnings.
@@ -23,10 +25,11 @@ Steps
 3. Gets the local name.
   a. Error: if the local name is not set.
 4. Create the build command with the indicated parameters and switches.
-  a. Release build if /release is present, or local release is true.
-  b. Debug build if /debug is present, or local release is false or unset.
-  c. Include warnings if /warnings is present, or local warnings is true.
-  d. If /upload is present,
+  a. Include TXT_ACM_PRODUCTION=FALSE if /itp is present or local itp is on.
+  b. Release build if /release is present, or local release is on.
+  c. Debug build if /debug is present, or local release is off or unset.
+  d. Include warnings if /warnings is present, or local warnings is on.
+  e. If /upload is present,
     i.  Error: if the local bmc is not set or is invalid.
     ii. If local bmc indicates iLO, include /I option with bmc IP
     iii. Upload for OpenBMC is TBD
