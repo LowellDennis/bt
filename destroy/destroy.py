@@ -18,7 +18,7 @@ INPUT = raw_input if sys.version_info.major == 2 else input
 # returns 0 on success, DOES NOT RETURN otherwise
 def destroy():
   # Get command line information
-  prms, opts = ParseCommandLine({'keep': False}, 1)
+  prms, opts = ParseCommandLine({'keep': False, 'yes': False}, 1)
   # Does not return if invalid options or parameters are found
 
   # Get path of worktree to be destroyed
@@ -32,13 +32,16 @@ def destroy():
   branch   = data.lcl.GetItem('branch')
 
   # Get confirmation from user remove it
-  print('About to remove worktree {0}!\nThis will delete {0} from your system!'.format(worktree))
-  while True:
-    response = INPUT('Proceed [n]/y ? ')
-    if not response: response = 'n'
-    choice = response[0].lower()
-    if choice in 'ny': break
-    print('Invalid response: {0}'.format(response))
+  if not opts['yes']:
+    print('About to remove worktree {0}!\nThis will delete {0} from your system!'.format(worktree))
+    while True:
+      response = INPUT('Proceed [n]/y ? ')
+      if not response: response = 'n'
+      choice = response[0].lower()
+      if choice in 'ny': break
+      print('Invalid response: {0}'.format(response))
+  else:
+    choice = 'y'
 
   # If user agreed ... get rid of worktree
   if choice == 'y':
