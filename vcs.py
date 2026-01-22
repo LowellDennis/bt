@@ -711,6 +711,64 @@ def GetBranchFromWorktree(base):
    result = FilterCommand('git branch', FindBranch, base)
    return branch
 
+# Gets information for all worktrees efficiently in a single git command
+# worktrees: List of worktree paths
+# returns Dictionary mapping worktree path to dict with 'repo' and 'branch' keys
+def GetAllWorktreeInfo(worktrees):
+   info_map = {}
+   
+   # If no worktrees, return empty dict
+   if not worktrees:
+      return info_map
+   
+   # Get the repository from the first worktree to run git worktree list
+   try:
+      first_worktree = worktrees[0] if isinstance(worktrees, list) else worktrees.split(';')[0]
+      repo = GetRepoFromWorktree(first_worktree)
+   except:
+      # If we can't get repo, fall back to individual queries
+      return None
+   
+   # Parse output from git worktree list --porcelain
+   current_worktree = None
+   current_branch = None
+   
+   def ParseWorktreeList(line):
+      nonlocal current_worktree, current_branch
+      if isinstance(line, bytes):
+         line = line.decode('utf-8')
+      
+      line = line.strip()
+      if line.startswith('worktree '):
+         # Save previous worktree info if exists
+         if current_worktree:
+            info_map[current_worktree] = {
+               'repo': repo,
+               'branch': current_branch if current_branch else 'detached'
+            }
+         # Start new worktree
+         current_worktree = line[9:].strip()  # Remove 'worktree ' prefix
+         current_branch = None
+      elif line.startswith('branch '):
+         # Extract branch name (format: "branch refs/heads/branch-name")
+         branch_ref = line[7:].strip()  # Remove 'branch ' prefix
+         if branch_ref.startswith('refs/heads/'):
+            current_branch = branch_ref[11:]  # Remove 'refs/heads/' prefix
+         else:
+            current_branch = branch_ref
+   
+   # Run git worktree list --porcelain from the repository
+   FilterCommand('git worktree list --porcelain', ParseWorktreeList, repo)
+   
+   # Save last worktree info
+   if current_worktree:
+      info_map[current_worktree] = {
+         'repo': repo,
+         'branch': current_branch if current_branch else 'detached'
+      }
+   
+   return info_map
+
 # Gets the branch on wich a worktree is based
 # base: Base directory of the worktree
 # returns Branch on which worktree is based
