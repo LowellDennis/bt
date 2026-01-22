@@ -28,7 +28,7 @@ def PostCMD(cmd, msg, op):
            'echo {0}'.format(equalLine),
            'echo Command: {0}'.format(cmd),
            '{0}'.format(cmd),
-           'echo. ',
+           'echo: ',
            'if %ERRORLEVEL% neq 0 goto :ERROR{0}'.format(Counter),
            'echo {0}'.format(starLine),
            'echo *** {0} Passed! ***'.format(op),
