@@ -27,6 +27,9 @@ def destroy():
   
   # Find worktree from full or partial path
   info     = GetVCSInfo(data.gbl.worktrees, path, 'worktree', True)
+  if not info:
+    ErrorMessage('{0} is not a git Worktree'.format(path))
+    # Does not return
   worktree = info.VCS().Base()
   repo     = info.Repo()
   branch   = data.lcl.GetItem('branch')

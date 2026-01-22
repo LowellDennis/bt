@@ -7,6 +7,7 @@ Provides workspace discovery, build management, and progress tracking
 import sys
 import os
 import subprocess
+import glob
 from datetime import datetime
 from pathlib import Path
 
@@ -14,15 +15,382 @@ try:
     from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                  QHBoxLayout, QTreeWidget, QTreeWidgetItem, QPushButton,
                                  QTextEdit, QProgressBar, QLabel, QComboBox, QSplitter,
-                                 QGroupBox, QStatusBar, QTabWidget, QMessageBox)
-    from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
-    from PyQt6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor
-except ImportError:
-    print("PyQt6 not found. Install with: pip install PyQt6")
+                                 QGroupBox, QStatusBar, QTabWidget, QMessageBox, QSizePolicy)
+    from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QProcess
+    from PyQt6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor, QKeyEvent
+except ImportError as e:
+    print(f"Required package not found: {e}")
+    print("Install with: pip install PyQt6")
     sys.exit(1)
 
 # Add current directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
+class InteractiveConsole(QTextEdit):
+    """Interactive console widget with command input and persistent shell session"""
+    
+    def __init__(self, working_directory=None, parent=None):
+        super().__init__(parent)
+        self.setFont(QFont('Consolas', 9))
+        
+        self.working_directory = working_directory or os.getcwd()
+        self.command_history = []
+        self.history_index = -1
+        self.current_command = ""
+        self.awaiting_output = False
+        self.pending_prompt = ""
+        
+        # Tab completion state
+        self.last_completion_matches = []
+        self.completion_index = 0
+        self.last_completion_prefix = ""
+        
+        # Input control
+        self.input_enabled = True
+        
+        # Create persistent shell process
+        self.shell_process = QProcess(self)
+        self.shell_process.setWorkingDirectory(self.working_directory)
+        self.shell_process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+        self.shell_process.readyReadStandardOutput.connect(self._handle_shell_output)
+        self.shell_process.readyReadStandardError.connect(self._handle_shell_output)
+        self.shell_process.finished.connect(self._handle_command_finished)
+        
+        # Start shell and inherit environment PROMPT
+        if sys.platform == 'win32':
+            self.shell_process.start('cmd.exe')
+        else:
+            self.shell_process.start('bash', ['-i'])
+        
+        self.shell_process.waitForStarted(1000)
+        
+        # Wait for initial prompt to appear
+        QTimer.singleShot(300, self._capture_initial_prompt)
+        
+        # Track where user can edit (after the prompt)
+        self.prompt_position = 0
+    
+    def _capture_initial_prompt(self):
+        """Capture the initial shell prompt"""
+        output = self.shell_process.readAllStandardOutput().data().decode('utf-8', errors='replace')
+        if output:
+            # Display the shell's welcome and prompt
+            self.insertPlainText(output)
+        self.prompt_position = self.textCursor().position()
+        self.ensureCursorVisible()
+    
+    def _handle_shell_output(self):
+        """Handle output from the shell process"""
+        output = self.shell_process.readAllStandardOutput().data().decode('utf-8', errors='replace')
+        if output:
+            # Just display all output from the shell
+            cursor = self.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            cursor.insertText(output)
+            self.setTextCursor(cursor)
+            self.prompt_position = cursor.position()
+            self.ensureCursorVisible()
+    
+    def _handle_command_finished(self):
+        """Handle command completion"""
+        # This won't be called for individual commands in an interactive shell
+        pass
+    
+    def set_input_enabled(self, enabled):
+        """Enable or disable user input"""
+        self.input_enabled = enabled
+        self.setReadOnly(not enabled)
+
+    
+    def keyPressEvent(self, event: QKeyEvent):
+        """Handle key presses for command input"""
+        # Ignore all input if disabled
+        if not self.input_enabled:
+            return
+        
+        cursor = self.textCursor()
+        
+        # Return key - execute command
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self._execute_command()
+            return
+        
+        # Tab key - command completion
+        elif event.key() == Qt.Key.Key_Tab:
+            self._handle_tab_completion()
+            return
+        
+        # Up arrow - previous command in history
+        elif event.key() == Qt.Key.Key_Up:
+            if self.command_history:
+                if self.history_index == -1:
+                    self.current_command = self._get_current_command()
+                    self.history_index = len(self.command_history) - 1
+                elif self.history_index > 0:
+                    self.history_index -= 1
+                
+                if self.history_index >= 0:
+                    self._replace_current_command(self.command_history[self.history_index])
+            return
+        
+        # Down arrow - next command in history
+        elif event.key() == Qt.Key.Key_Down:
+            if self.history_index >= 0:
+                self.history_index += 1
+                if self.history_index >= len(self.command_history):
+                    self.history_index = -1
+                    self._replace_current_command(self.current_command)
+                else:
+                    self._replace_current_command(self.command_history[self.history_index])
+            return
+        
+        # Backspace - prevent deleting prompt
+        elif event.key() == Qt.Key.Key_Backspace:
+            if cursor.position() <= self.prompt_position:
+                return
+        
+        # Left arrow - allow navigation but prevent editing
+        elif event.key() == Qt.Key.Key_Left:
+            super().keyPressEvent(event)
+            return
+        
+        # Home - move to start of command (after prompt)
+        elif event.key() == Qt.Key.Key_Home:
+            cursor.setPosition(self.prompt_position)
+            self.setTextCursor(cursor)
+            return
+        
+        # For printable characters, enforce position at or after prompt
+        if event.text() and cursor.position() < self.prompt_position:
+            cursor.setPosition(self.prompt_position)
+            self.setTextCursor(cursor)
+        
+        # Handle normal text input
+        super().keyPressEvent(event)
+    
+    def _get_current_command(self):
+        """Get the command currently being typed"""
+        cursor = self.textCursor()
+        cursor.setPosition(self.prompt_position)
+        cursor.movePosition(QTextCursor.MoveOperation.End, QTextCursor.MoveMode.KeepAnchor)
+        return cursor.selectedText()
+    
+    def _replace_current_command(self, command):
+        """Replace the current command with a new one"""
+        cursor = self.textCursor()
+        cursor.setPosition(self.prompt_position)
+        cursor.movePosition(QTextCursor.MoveOperation.End, QTextCursor.MoveMode.KeepAnchor)
+        cursor.removeSelectedText()
+        cursor.insertText(command)
+        self.setTextCursor(cursor)
+    
+    def _execute_command(self):
+        """Execute the current command"""
+        command = self._get_current_command().strip()
+        
+        # Handle cls command locally to clear the screen
+        if command.lower() == 'cls' or command.lower() == 'clear':
+            self.clear()
+            self.prompt_position = 0
+            # Add to history
+            if not self.command_history or self.command_history[-1] != command:
+                self.command_history.append(command)
+            self.history_index = -1
+            # Send just newline to get a fresh prompt without echoing cls
+            self.shell_process.write('\n'.encode('utf-8'))
+            return
+        
+        # Add to history (only non-empty commands)
+        if command and (not self.command_history or self.command_history[-1] != command):
+            self.command_history.append(command)
+        self.history_index = -1
+        
+        # Clear the typed command from the screen (shell will echo it back)
+        cursor = self.textCursor()
+        cursor.setPosition(self.prompt_position)
+        cursor.movePosition(QTextCursor.MoveOperation.End, QTextCursor.MoveMode.KeepAnchor)
+        cursor.removeSelectedText()
+        self.setTextCursor(cursor)
+        
+        # Send command to shell (even if empty, to get a new prompt)
+        self.awaiting_output = True
+        self.shell_process.write((command + '\n').encode('utf-8'))
+        
+        # Track directory changes for tab completion
+        if command and command.lower().startswith('cd '):
+            self._update_working_dir_from_command(command)
+        
+        # Wait for output to complete
+        QTimer.singleShot(500, self._finish_command)
+    
+    def _update_working_dir_from_command(self, command):
+        """Update working directory tracking when user executes cd command"""
+        # Extract the directory from cd command
+        parts = command.split(maxsplit=1)
+        if len(parts) > 1:
+            target = parts[1].strip().strip('"')
+            if target:
+                import os
+                if os.path.isabs(target):
+                    self.working_directory = target
+                else:
+                    new_dir = os.path.join(self.working_directory, target)
+                    self.working_directory = os.path.normpath(new_dir)
+    
+    def _finish_command(self):
+        """Finish command execution"""
+        self.awaiting_output = False
+    
+    def _handle_tab_completion(self):
+        """Handle tab completion for files and directories with cycling"""
+        partial_command = self._get_current_command()
+        
+        if not partial_command.strip():
+            # If empty, just insert spaces
+            cursor = self.textCursor()
+            cursor.insertText('    ')  # 4 spaces for indent
+            self.setTextCursor(cursor)
+            # Reset completion state
+            self.last_completion_matches = []
+            return
+        
+        # Parse the command to get the last token (word being completed)
+        tokens = partial_command.split()
+        if not tokens:
+            self.last_completion_matches = []
+            return
+        
+        # Get the last token (the one being completed)
+        last_token = tokens[-1] if partial_command and partial_command[-1] != ' ' else ''
+        
+        # Check if we're cycling through previous matches
+        # We're cycling if we have matches and the current token matches one of them
+        is_cycling = False
+        if self.last_completion_matches and last_token:
+            for match in self.last_completion_matches:
+                match_basename = os.path.basename(match)
+                if os.path.isdir(match):
+                    match_basename += os.sep
+                if last_token.endswith(match_basename) or match_basename.startswith(last_token):
+                    is_cycling = True
+                    break
+        
+        if is_cycling:
+            # Cycle to next match
+            self.completion_index = (self.completion_index + 1) % len(self.last_completion_matches)
+            match = self.last_completion_matches[self.completion_index]
+            
+            # Get basename before adding trailing slash
+            replacement = os.path.basename(match)
+            if os.path.isdir(match):
+                replacement += os.sep
+            
+            if tokens and partial_command[-1] != ' ':
+                new_command = ' '.join(tokens[:-1] + [replacement]) if len(tokens) > 1 else replacement
+            else:
+                new_command = partial_command + replacement
+            
+            self._replace_current_command(new_command)
+            return
+        
+        # New completion - search for matches
+        self.completion_index = 0
+        
+        # Try to complete as a file/directory path
+        try:
+            # Handle relative and absolute paths
+            if last_token and os.path.isabs(last_token):
+                search_pattern = last_token + '*'
+            elif last_token:
+                search_pattern = os.path.join(self.working_directory, last_token + '*')
+            else:
+                search_pattern = os.path.join(self.working_directory, '*')
+            
+            matches = glob.glob(search_pattern)
+            
+            if not matches:
+                self.last_completion_matches = []
+                return
+            
+            # Store matches for cycling
+            self.last_completion_matches = matches
+            
+            # Complete to first match
+            match = matches[0]
+            # Get basename before adding trailing slash
+            replacement = os.path.basename(match)
+            if os.path.isdir(match):
+                replacement += os.sep
+            
+            if tokens and partial_command[-1] != ' ':
+                new_command = ' '.join(tokens[:-1] + [replacement]) if len(tokens) > 1 else replacement
+            else:
+                new_command = partial_command + replacement
+                
+            self._replace_current_command(new_command)
+                
+        except Exception:
+            # If completion fails, reset state
+            self.last_completion_matches = []
+    
+    def _update_prompt_position(self):
+        """Update the prompt position after output"""
+        self.prompt_position = self.textCursor().position()
+    
+    def _process_tab_completion(self):
+        """Process any tab completion output from shell"""
+        # The shell output handler will automatically display any completions
+        pass
+    
+    def write_output(self, text):
+        """Write output to console (for compatibility with existing code)"""
+        cursor = self.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.insertText(text)
+        self.setTextCursor(cursor)
+        self.ensureCursorVisible()
+        # Update prompt position
+        self.prompt_position = self.textCursor().position()
+    
+    def append(self, text):
+        """Override append to update prompt position"""
+        super().append(text)
+        self.prompt_position = self.textCursor().position()
+        self.ensureCursorVisible()
+    
+    def insertPlainText(self, text):
+        """Override insertPlainText to update prompt position"""
+        super().insertPlainText(text)
+        self.prompt_position = self.textCursor().position()
+        self.ensureCursorVisible()
+    
+    def set_working_directory(self, directory):
+        """Change the working directory of the shell"""
+        self.working_directory = directory
+        if sys.platform == 'win32':
+            self.shell_process.write(f'cd /d "{directory}"\n'.encode('utf-8'))
+        else:
+            self.shell_process.write(f'cd "{directory}"\n'.encode('utf-8'))
+    
+    def run_command(self, command):
+        """Run a command programmatically (like typing it and pressing Enter)"""
+        if not command:
+            return
+        
+        # Display the command in the console
+        cursor = self.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.insertText(command)
+        self.setTextCursor(cursor)
+        
+        # Execute it
+        if command and (not self.command_history or self.command_history[-1] != command):
+            self.command_history.append(command)
+        self.history_index = -1
+        
+        # Send command to shell
+        self.shell_process.write((command + '\n').encode('utf-8'))
 
 
 class WorkspaceDiscovery:
@@ -34,11 +402,17 @@ class WorkspaceDiscovery:
     
     def get_repositories(self):
         """Read repositories from .bt cache and discover worktrees"""
-        repos = []
+        main_repos = []
+        all_worktrees = []
+        repos_set = set()  # Use set to avoid duplicates (lowercase on Windows for case-insensitive comparison)
+        
+        print("\n=== Discovering repositories ===")
+        print(f"Cache directory: {self.cache_dir}")
         
         # Check for 'repositories' file in cache (stores known repos)
         repo_file = os.path.join(self.cache_dir, 'repositories')
         if os.path.exists(repo_file):
+            print(f"Reading {repo_file}...")
             try:
                 with open(repo_file, 'r') as f:
                     content = f.read().strip()
@@ -47,48 +421,70 @@ class WorkspaceDiscovery:
                         for line in content.split('\n'):
                             for repo in line.split(','):
                                 repo = repo.strip()
-                                if repo and os.path.isdir(repo):
-                                    if repo not in repos:
-                                        repos.append(repo)
-                                        # Also discover git worktrees
-                                        repos.extend(self.get_worktrees(repo))
+                                if repo:
+                                    # Normalize path
+                                    repo = os.path.normpath(os.path.abspath(repo))
+                                    repo_key = repo.lower() if os.name == 'nt' else repo
+                                    if os.path.isdir(repo) and repo_key not in repos_set:
+                                        print(f"  Found repository: {repo}")
+                                        repos_set.add(repo_key)
+                                        main_repos.append(repo)
+                                        # Discover git worktrees for this repo
+                                        worktrees = self.get_worktrees(repo)
+                                        for wt in worktrees:
+                                            wt_key = wt.lower() if os.name == 'nt' else wt
+                                            if wt_key not in repos_set:
+                                                print(f"    Found worktree: {wt}")
+                                                repos_set.add(wt_key)
+                                                all_worktrees.append(wt)
+                                    elif not os.path.isdir(repo):
+                                        print(f"  Skipping (not found): {repo}")
             except Exception as e:
                 print(f"Error reading repositories: {e}")
         
         # Also check 'repo' file (single repository)
         repo_file = os.path.join(self.cache_dir, 'repo')
         if os.path.exists(repo_file):
+            print(f"Reading {repo_file}...")
             try:
                 with open(repo_file, 'r') as f:
                     repo = f.read().strip()
-                    if repo and os.path.isdir(repo) and repo not in repos:
-                        repos.append(repo)
-                        # Also discover git worktrees
-                        repos.extend(self.get_worktrees(repo))
+                    if repo:
+                        # Normalize path
+                        repo = os.path.normpath(os.path.abspath(repo))
+                        repo_key = repo.lower() if os.name == 'nt' else repo
+                        if os.path.isdir(repo) and repo_key not in repos_set:
+                            print(f"  Found repository: {repo}")
+                            repos_set.add(repo_key)
+                            main_repos.append(repo)
+                            # Discover git worktrees for this repo
+                            worktrees = self.get_worktrees(repo)
+                            for wt in worktrees:
+                                wt_key = wt.lower() if os.name == 'nt' else wt
+                                if wt_key not in repos_set:
+                                    print(f"    Found worktree: {wt}")
+                                    repos_set.add(wt_key)
+                                    all_worktrees.append(wt)
+                        elif not os.path.isdir(repo):
+                            print(f"  Skipping (not found): {repo}")
             except Exception as e:
                 print(f"Error reading repo: {e}")
         
-        # If no repos found, add some common locations
-        if not repos:
-            common_locations = [
-                r'D:\HPE\Dev\ROMS\GNext',
-                r'D:\HPE\Dev\ROMS\G12',
-                r'D:\HPE\Dev\ROMS\G11',
-                r'D:\HPE\Dev\ROMS'
-            ]
-            for loc in common_locations:
-                if os.path.isdir(loc) and loc not in repos:
-                    repos.append(loc)
-        
+        # Return repos first, then worktrees
+        repos = main_repos + all_worktrees
+        print(f"\nTotal repositories found: {len(main_repos)}")
+        print(f"Total worktrees found: {len(all_worktrees)}")
+        print(f"Total workspaces: {len(repos)}")
         return repos
     
     def get_worktrees(self, repo_path):
-        """Get all git worktrees for a repository"""
+        """Get all git worktrees for a repository (excluding the main repo)"""
         worktrees = []
         try:
             # Check if this is a git repository
             git_dir = os.path.join(repo_path, '.git')
-            if not os.path.isdir(git_dir):
+            if not os.path.isdir(git_dir) and not os.path.isfile(git_dir):
+                # Not a git repo (note: worktrees have .git as a file, not dir)
                 return worktrees
             
             # Run git worktree list
@@ -100,17 +496,26 @@ class WorkspaceDiscovery:
                 timeout=5
             )
             
-            if result.returncode == 0:
+            if result.returncode == 0 and result.stdout.strip():
                 lines = result.stdout.strip().split('\n')
-                # Skip first line (the main repo itself)
-                for line in lines[1:]:
+                # Normalize the main repo path for comparison (case-insensitive on Windows)
+                main_repo_normalized = os.path.normpath(os.path.abspath(repo_path)).lower()
+                
+                for line in lines:
                     if line.strip():
                         # Format: <path> <commit> [<branch>]
                         parts = line.split()
                         if parts:
                             worktree_path = parts[0].strip()
-                            if os.path.isdir(worktree_path):
-                                worktrees.append(worktree_path)
+                            # Normalize path for comparison (case-insensitive)
+                            worktree_normalized = os.path.normpath(os.path.abspath(worktree_path)).lower()
+                            
+                            # Only add if it's not the main repo itself and directory exists
+                            # Skip the first entry which is always the main worktree
+                            if (worktree_normalized != main_repo_normalized and 
+                                os.path.isdir(worktree_path)):
+                                # Return the original path, not the normalized one
+                                worktrees.append(os.path.normpath(os.path.abspath(worktree_path)))
         except Exception as e:
             print(f"Error getting worktrees for {repo_path}: {e}")
         
@@ -201,6 +606,43 @@ class WorkspaceDiscovery:
             except Exception as e:
                 print(f"Error reading local.txt: {e}")
         return None
+    
+    def get_local_settings(self, repo_path):
+        """Get all local settings for a repository by reading .bt directory files"""
+        settings = {
+            'alert': None,
+            'bmc': None,
+            'branch': None,
+            'cpu': None,
+            'itp': None,
+            'name': None,
+            'platform': None,
+            'release': None,
+            'vendor': None,
+            'warnings': None
+        }
+        
+        print(f"\nReading bt settings from .bt directory: {repo_path}")
+        
+        # Read from .bt directory files
+        bt_dir = os.path.join(repo_path, '.bt')
+        if not os.path.isdir(bt_dir):
+            print(f"  .bt directory does not exist")
+            return settings
+        
+        # Read each setting file
+        for setting_name in settings.keys():
+            setting_file = os.path.join(bt_dir, setting_name)
+            if os.path.exists(setting_file):
+                try:
+                    with open(setting_file, 'r') as f:
+                        value = f.read().strip()
+                        settings[setting_name] = value
+                        print(f"  {setting_name} = {value}")
+                except Exception as e:
+                    print(f"  Error reading {setting_name}: {e}")
+        
+        return settings
 
 
 class BuildThread(QThread):
@@ -215,6 +657,8 @@ class BuildThread(QThread):
         self.platform = platform
         self.build_type = build_type
         self.process = None
+        self.line_count = 0
+        self.estimated_total_lines = 1000  # Default estimate
         
     def run(self):
         """Run the build command"""
@@ -241,20 +685,34 @@ class BuildThread(QThread):
                     line_str = line.decode('utf-8', errors='ignore')
                     self.output_ready.emit(line_str)
                     
-                    # Parse progress if present
-                    if b'Modules' in line and b'/' in line:
+                    # Track progress by line count
+                    self.line_count += 1
+                    
+                    # Check if there's an explicit progress indicator in the output
+                    if b'/' in line and (b'%' in line or b'lines' in line.lower()):
                         try:
-                            # Extract module counts: "Modules [bar](123/456)78%"
-                            parts = line_str.split('(')
-                            if len(parts) > 1:
-                                counts = parts[1].split(')')[0].split('/')
-                                if len(counts) == 2:
-                                    current = int(counts[0])
-                                    total = int(counts[1])
-                                    pct = int((current / total) * 100) if total > 0 else 0
-                                    self.progress_update.emit(current, total, pct)
+                            # Try to parse explicit progress: "(123/456)" or "123/456"
+                            import re
+                            match = re.search(r'\((\d+)/(\d+)\)', line_str)
+                            if not match:
+                                match = re.search(r'(\d+)/(\d+)', line_str)
+                            if match:
+                                current = int(match.group(1))
+                                total = int(match.group(2))
+                                pct = int((current / total) * 100) if total > 0 else 0
+                                self.estimated_total_lines = total
+                                self.progress_update.emit(current, total, pct)
+                            else:
+                                # Use line count as progress
+                                pct = min(int((self.line_count / self.estimated_total_lines) * 100), 99)
+                                self.progress_update.emit(self.line_count, self.estimated_total_lines, pct)
                         except:
-                            pass
+                            # Fallback to line count
+                            pct = min(int((self.line_count / self.estimated_total_lines) * 100), 99)
+                            self.progress_update.emit(self.line_count, self.estimated_total_lines, pct)
+                    elif self.line_count % 10 == 0:  # Update every 10 lines
+                        pct = min(int((self.line_count / self.estimated_total_lines) * 100), 99)
+                        self.progress_update.emit(self.line_count, self.estimated_total_lines, pct)
             
             self.process.wait()
             success = self.process.returncode == 0
@@ -270,6 +728,307 @@ class BuildThread(QThread):
             self.process.terminate()
 
 
+class WorkspaceTab(QWidget):
+    """Individual tab for a workspace/repository"""
+    
+    def __init__(self, workspace_path, discovery, parent=None):
+        super().__init__(parent)
+        self.workspace_path = workspace_path
+        self.discovery = discovery
+        self.build_thread = None
+        self.local_settings = {}
+        self.command_buffer = ""
+        
+        self.init_ui()
+        self.load_local_settings()
+        self.start_cmd_session()
+    
+    def closeEvent(self, event):
+        """Clean up when tab is closed"""
+        if hasattr(self, 'cmd_process'):
+            try:
+                self.cmd_process.kill()
+            except:
+                pass
+        event.accept()
+    
+    def init_ui(self):
+        """Initialize tab UI"""
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(5, 5, 5, 0)
+        layout.setSpacing(3)
+        
+        # Command/Output area - Terminal
+        output_group = QGroupBox('Command & Output')
+        output_group.setStyleSheet('QGroupBox { font-weight: bold; color: #000000; }')
+        output_layout = QVBoxLayout()
+        
+        self.cmd_output = InteractiveConsole(working_directory=self.workspace_path)
+        output_layout.addWidget(self.cmd_output)
+        
+        output_group.setLayout(output_layout)
+        layout.addWidget(output_group, stretch=1)
+    
+    def start_cmd_session(self):
+        """Start an interactive CMD.exe session - not used with QTextEdit output"""
+        # QTextEdit is just for displaying output, no interactive session needed
+        pass
+    
+    def load_local_settings(self):
+        """Load local settings for this workspace"""
+        self.local_settings = self.discovery.get_local_settings(self.workspace_path)
+    
+    def edit_email(self):
+        """Edit the email setting with validation"""
+        from PyQt6.QtWidgets import QInputDialog, QMessageBox
+        import re
+        
+        current = self.local_settings.get('email', '')
+        text, ok = QInputDialog.getText(self, 'Edit Email', 'Enter email address:', text=current)
+        
+        if ok:
+            if text:
+                # Validate email format
+                email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+                if re.match(email_pattern, text):
+                    self.save_setting('email', text)
+                else:
+                    QMessageBox.warning(
+                        self,
+                        'Invalid Email',
+                        'Please enter a valid email address.'
+                    )
+            else:
+                # Allow clearing the email
+                self.save_setting('email', '')
+    
+    def edit_bmc(self):
+        """Edit the bmc setting"""
+        from PyQt6.QtWidgets import QInputDialog
+        current = self.local_settings.get('bmc', '')
+        text, ok = QInputDialog.getText(self, 'Edit BMC', 'Enter BMC setting:', text=current)
+        if ok and text:
+            self.save_setting('bmc', text)
+    
+    def edit_name(self):
+        """Edit the name setting by selecting from available platforms"""
+        from PyQt6.QtWidgets import QInputDialog
+        
+        # Discover available platforms in this workspace
+        platforms = self.discovery.discover_platforms(self.workspace_path)
+        
+        if not platforms:
+            # Fall back to text input if no platforms found
+            current = self.local_settings.get('name', '')
+            text, ok = QInputDialog.getText(self, 'Edit Name', 'Enter platform name:', text=current)
+            if ok and text:
+                self.save_setting('name', text)
+            return
+        
+        # Get list of platform names
+        platform_names = [p['name'] for p in platforms]
+        
+        # Get current selection
+        current = self.local_settings.get('name', '')
+        current_index = 0
+        if current in platform_names:
+            current_index = platform_names.index(current)
+        
+        # Show selection dialog
+        item, ok = QInputDialog.getItem(
+            self, 
+            'Select Platform', 
+            'Choose platform name:', 
+            platform_names, 
+            current_index, 
+            False
+        )
+        
+        if ok and item:
+            # Run bt init with the selected platform name
+            # cpu, name, platform, and vendor will be updated after successful init
+            self.run_bt_init(item)
+    
+    def run_bt_init(self, platform_name):
+        """Run bt init command to configure platform in the command output area"""
+        # Run bt init via QProcess to display output in the command window
+        process = QProcess(self)
+        process.setWorkingDirectory(self.workspace_path)
+        process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+        
+        # Store context for handlers
+        process.workspace_path = self.workspace_path
+        process.platform_name = platform_name
+        process.workspace_tab = self
+        
+        # Connect handlers
+        process.readyReadStandardOutput.connect(lambda: self._handle_init_output(process))
+        process.readyReadStandardError.connect(lambda: self._handle_init_output(process))
+        process.finished.connect(lambda exit_code, exit_status: self._handle_init_finished(process, exit_code))
+        process.errorOccurred.connect(lambda error: self._handle_init_error(process, error))
+        
+        # Use bt.cmd on Windows (via cmd.exe /c), bt.sh on Linux
+        if sys.platform == 'win32':
+            bt_executable = 'bt.cmd'
+            bt_cmd = ['cmd.exe', '/c', bt_executable, 'init', platform_name]
+        else:
+            bt_executable = 'bt.sh'
+            bt_cmd = [bt_executable, 'init', platform_name]
+        
+        # Show command in output window
+        self.cmd_output.append(f"\n{'='*80}\n")
+        self.cmd_output.append(f"Running: {bt_executable} init {platform_name}\n")
+        self.cmd_output.append(f"Working directory: {self.workspace_path}\n")
+        self.cmd_output.append(f"{'='*80}\n\n")
+        self.cmd_output.ensureCursorVisible()
+        
+        # Start the process
+        process.start(bt_cmd[0], bt_cmd[1:])
+        
+        if not process.waitForStarted(3000):
+            self.cmd_output.append(f"ERROR: Failed to start {bt_executable}\n")
+            self.cmd_output.append(f"Error: {process.errorString()}\n")
+            return
+    
+    def _handle_init_output(self, process):
+        """Handle output from bt init command"""
+        if not hasattr(process, 'workspace_tab'):
+            return
+        
+        # Read output
+        output = process.readAllStandardOutput().data().decode('utf-8', errors='replace')
+        
+        if output:
+            process.workspace_tab.cmd_output.insertPlainText(output)
+            process.workspace_tab.cmd_output.ensureCursorVisible()
+    
+    def _handle_init_finished(self, process, exit_code):
+        """Handle completion of bt init command"""
+        if not hasattr(process, 'workspace_tab'):
+            return
+        
+        if exit_code == 0:
+            process.workspace_tab.cmd_output.append(f"\n{'='*80}\n")
+            process.workspace_tab.cmd_output.append("bt init completed successfully!\n")
+            process.workspace_tab.cmd_output.append(f"{'='*80}\n\n")
+            process.workspace_tab.cmd_output.ensureCursorVisible()
+            
+            # Reload cpu, name, platform, and vendor settings after successful init
+            process.workspace_tab.load_local_settings()
+        else:
+            process.workspace_tab.cmd_output.append(f"\n{'='*80}\n")
+            process.workspace_tab.cmd_output.append(f"bt init failed! (exit code: {exit_code})\n")
+            process.workspace_tab.cmd_output.append(f"{'='*80}\n\n")
+            process.workspace_tab.cmd_output.ensureCursorVisible()
+    
+    def _handle_init_error(self, process, error):
+        """Handle process errors during bt init"""
+        if hasattr(process, 'workspace_tab'):
+            error_msg = f"\nProcess error occurred: {process.errorString()}\n"
+            process.workspace_tab.cmd_output.append(error_msg)
+            process.workspace_tab.cmd_output.ensureCursorVisible()
+    
+    def toggle_setting(self, setting_name):
+        """Toggle a boolean setting"""
+        current = self.local_settings.get(setting_name, 'off')
+        # Toggle between 'on' and 'off'
+        new_value = 'off' if current == 'on' else 'on'
+        self.save_setting(setting_name, new_value)
+    
+    def save_setting(self, setting_name, value):
+        """Save a setting by writing to .bt directory file"""
+        bt_dir = os.path.join(self.workspace_path, '.bt')
+        
+        # Create .bt directory if it doesn't exist
+        if not os.path.exists(bt_dir):
+            try:
+                os.makedirs(bt_dir)
+            except Exception as e:
+                print(f"Error creating .bt directory: {e}")
+                return
+        
+        # Write the setting to its file
+        setting_file = os.path.join(bt_dir, setting_name)
+        try:
+            with open(setting_file, 'w') as f:
+                f.write(value)
+            self.local_settings[setting_name] = value
+            print(f"Saved {setting_name} = {value}")
+        except Exception as e:
+            print(f"Error saving {setting_name}: {e}")
+    
+    def start_build(self, build_type='DEBUG'):
+        """Start a build"""
+        platform_name = self.local_settings.get('name', '')
+        if not platform_name:
+            self.output_text.append("\nError: No platform name set. Use 'name' button to set.\n")
+            return False
+        
+        # Clear output
+        self.output_text.clear()
+        self.output_text.append(f"=== Building {platform_name} ({build_type}) ===\n")
+        
+        # Start build thread
+        self.build_thread = BuildThread(self.workspace_path, platform_name, build_type)
+        self.build_thread.output_ready.connect(self.append_output)
+        self.build_thread.progress_update.connect(self.update_progress)
+        self.build_thread.build_finished.connect(self.build_completed)
+        self.build_thread.start()
+        
+        return True
+    
+    def stop_build(self):
+        """Stop the current build"""
+        if self.build_thread:
+            self.build_thread.stop()
+            self.output_text.append("\n*** Build stopped by user ***\n")
+    
+    def append_output(self, text):
+        """Append text to build output"""
+        if 'ERROR' in text:
+            self.output_text.setTextColor(QColor('#ff6b6b'))
+        elif 'WARNING' in text:
+            self.output_text.setTextColor(QColor('#ffd93d'))
+        else:
+            self.output_text.setTextColor(QColor('#d4d4d4'))
+        
+        self.output_text.insertPlainText(text)
+        self.output_text.setTextColor(QColor('#d4d4d4'))
+        
+        # Auto-scroll to bottom
+        cursor = self.output_text.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        self.output_text.setTextCursor(cursor)
+    
+    def update_progress(self, current, total, percentage):
+        """Update progress - progress bar was removed"""
+        pass
+    
+    def build_completed(self, success):
+        """Handle build completion"""
+        platform_name = self.local_settings.get('name', 'Unknown')
+        if success:
+            self.output_text.append("\n=== Build completed successfully ===\n")
+            QMessageBox.information(self, 'Build Complete', 
+                                   f'{platform_name} built successfully!')
+        else:
+            self.output_text.append("\n=== Build failed ===\n")
+            QMessageBox.warning(self, 'Build Failed', 
+                               f'{platform_name} build failed. Check output for errors.')
+        
+        # Notify parent to update buttons
+        if hasattr(self.parent(), 'parent') and hasattr(self.parent().parent(), 'update_button_states'):
+            self.parent().parent().update_button_states()
+    
+    def has_platform_selected(self):
+        """Check if a platform is selected"""
+        return bool(self.local_settings.get('name', ''))
+    
+    def is_building(self):
+        """Check if currently building"""
+        return self.build_thread is not None and self.build_thread.isRunning()
+
+
 class BTGui(QMainWindow):
     """Main GUI window for BIOS Tool"""
     
@@ -277,9 +1036,7 @@ class BTGui(QMainWindow):
         super().__init__()
         self.bt_path = os.path.dirname(os.path.abspath(__file__))
         self.discovery = WorkspaceDiscovery(self.bt_path)
-        self.build_thread = None
-        self.current_workspace = None
-        self.current_platform = None
+        self.workspace_tabs = {}
         
         self.init_ui()
         self.discover_workspaces()
@@ -293,29 +1050,138 @@ class BTGui(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         main_layout = QVBoxLayout(central)
+        main_layout.setContentsMargins(5, 5, 5, 0)
+        main_layout.setSpacing(5)
         
-        # Top toolbar
-        toolbar = self.create_toolbar()
-        main_layout.addLayout(toolbar)
+        # Top button bar
+        button_bar = self.create_button_bar()
+        main_layout.addLayout(button_bar)
         
-        # Main content area (splitter)
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        # Tab widget for workspaces
+        self.tab_widget = QTabWidget()
+        self.tab_widget.setTabsClosable(False)
+        self.tab_widget.currentChanged.connect(self.on_tab_changed)
         
-        # Left panel: Workspace tree
-        left_panel = self.create_workspace_panel()
-        splitter.addWidget(left_panel)
+        # Minimize tab size
+        self.tab_widget.tabBar().setStyleSheet("""
+            QTabBar::tab {
+                padding: 4px 8px;
+                min-width: 40px;
+                max-width: 120px;
+            }
+        """)
         
-        # Right panel: Build output and controls
-        right_panel = self.create_build_panel()
-        splitter.addWidget(right_panel)
+        main_layout.addWidget(self.tab_widget, stretch=1)
         
-        splitter.setSizes([400, 1000])
-        main_layout.addWidget(splitter)
-        
-        # Status bar
+        # Status bar with global email and local workspace settings (double height with stacked layout)
         self.status_bar = QStatusBar()
+        self.status_bar.setMinimumHeight(50)
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage('Ready')
+        
+        # Helper function to create stacked label/value widget
+        def create_stacked_widget(label_text, is_button=False, checkable=False):
+            widget = QWidget()
+            layout = QVBoxLayout(widget)
+            layout.setContentsMargins(4, 2, 4, 2)
+            layout.setSpacing(0)
+            
+            # Label on top (smaller, gray)
+            label = QLabel(label_text)
+            label.setStyleSheet('QLabel { color: #666666; font-size: 9px; font-weight: bold; }')
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(label)
+            
+            # Value below
+            if is_button:
+                value = QPushButton('-')
+                if checkable:
+                    value.setCheckable(True)
+                    value.setStyleSheet('''
+                        QPushButton { background-color: #555555; color: #ffffff; padding: 2px 8px; border-radius: 3px; font-size: 10px; }
+                        QPushButton:checked { background-color: #00aa00; }
+                    ''')
+                else:
+                    value.setStyleSheet('''
+                        QPushButton { background-color: #2d2d2d; color: #ffffff; padding: 2px 8px; border-radius: 3px; font-size: 10px; }
+                        QPushButton:hover { background-color: #3d3d3d; }
+                    ''')
+            else:
+                value = QLabel('-')
+                value.setStyleSheet('''
+                    QLabel {
+                        background-color: #e8e8e8;
+                        color: #333333;
+                        border: 1px solid #999999;
+                        border-radius: 3px;
+                        padding: 2px 8px;
+                        font-size: 10px;
+                    }
+                ''')
+                value.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            layout.addWidget(value)
+            return widget, value
+        
+        # Create a container widget for left-aligned items
+        left_container = QWidget()
+        left_layout = QHBoxLayout(left_container)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(6)
+        
+        # Email setting (global, left-most)
+        email_widget, self.email_setting_btn = create_stacked_widget('Email', is_button=True)
+        self.email_setting_btn.clicked.connect(self.edit_email_setting)
+        left_layout.addWidget(email_widget)
+        
+        # Separator
+        left_layout.addSpacing(8)
+        
+        # Toggle settings (local/per-workspace)
+        alert_widget, self.status_alert_btn = create_stacked_widget('alert', is_button=True, checkable=True)
+        self.status_alert_btn.clicked.connect(lambda: self._toggle_local_setting('alert'))
+        left_layout.addWidget(alert_widget)
+        
+        itp_widget, self.status_itp_btn = create_stacked_widget('itp', is_button=True, checkable=True)
+        self.status_itp_btn.clicked.connect(lambda: self._toggle_local_setting('itp'))
+        left_layout.addWidget(itp_widget)
+        
+        release_widget, self.status_release_btn = create_stacked_widget('release', is_button=True, checkable=True)
+        self.status_release_btn.clicked.connect(lambda: self._toggle_local_setting('release'))
+        left_layout.addWidget(release_widget)
+        
+        warnings_widget, self.status_warnings_btn = create_stacked_widget('warnings', is_button=True, checkable=True)
+        self.status_warnings_btn.clicked.connect(lambda: self._toggle_local_setting('warnings'))
+        left_layout.addWidget(warnings_widget)
+        
+        # Separator
+        left_layout.addSpacing(8)
+        
+        # Editable local settings
+        bmc_widget, self.status_bmc_btn = create_stacked_widget('bmc', is_button=True)
+        self.status_bmc_btn.clicked.connect(lambda: self._edit_local_setting('bmc'))
+        left_layout.addWidget(bmc_widget)
+        
+        name_widget, self.status_name_btn = create_stacked_widget('name', is_button=True)
+        self.status_name_btn.clicked.connect(lambda: self._edit_local_setting('name'))
+        left_layout.addWidget(name_widget)
+        
+        self.status_bar.addWidget(left_container)
+        
+        # Read-only settings (pushed to the right edge)
+        branch_widget, self.status_branch_label = create_stacked_widget('branch', is_button=False)
+        self.status_bar.addPermanentWidget(branch_widget)
+        
+        cpu_widget, self.status_cpu_label = create_stacked_widget('cpu', is_button=False)
+        self.status_bar.addPermanentWidget(cpu_widget)
+        
+        platform_widget, self.status_platform_label = create_stacked_widget('platform', is_button=False)
+        self.status_bar.addPermanentWidget(platform_widget)
+        
+        vendor_widget, self.status_vendor_label = create_stacked_widget('vendor', is_button=False)
+        self.status_bar.addPermanentWidget(vendor_widget)
+        
+        # Load and display current email
+        self._load_email_setting()
         
         # Style
         self.setStyleSheet("""
@@ -361,320 +1227,1249 @@ class BTGui(QMainWindow):
                 border: 1px solid #cccccc;
                 border-radius: 4px;
             }
+            QTabWidget::pane {
+                border: 2px solid #cccccc;
+                border-radius: 5px;
+                background-color: white;
+            }
+            QTabBar::tab {
+                background-color: #e0e0e0;
+                color: #333333;
+                padding: 8px 16px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            QTabBar::tab:selected {
+                background-color: #0078d4;
+                color: white;
+                font-weight: bold;
+            }
+            QTabBar::tab:hover {
+                background-color: #106ebe;
+                color: white;
+            }
+            QTabBar::tab[is_worktree="true"] {
+                background-color: #d4f1d4;
+                color: #2d5016;
+            }
+            QTabBar::tab[is_worktree="true"]:selected {
+                background-color: #28a745;
+                color: white;
+                font-weight: bold;
+            }
+            QTabBar::tab[is_worktree="true"]:hover {
+                background-color: #218838;
+                color: white;
+            }
         """)
     
-    def create_toolbar(self):
-        """Create top toolbar with action buttons"""
+    def create_button_bar(self):
+        """Create top button bar"""
         layout = QHBoxLayout()
         
-        # Workspace selector
-        layout.addWidget(QLabel('Workspace:'))
-        self.workspace_combo = QComboBox()
-        self.workspace_combo.setMinimumWidth(300)
-        self.workspace_combo.currentTextChanged.connect(self.on_workspace_changed)
-        layout.addWidget(self.workspace_combo)
+        # General Commands group (at left edge)
+        general_cmds_group = QGroupBox('General Commands')
+        general_cmds_group.setStyleSheet('QGroupBox { font-weight: bold; color: #000000; }')
+        general_cmds_layout = QHBoxLayout()
+        general_cmds_layout.setContentsMargins(5, 5, 5, 5)
+        general_cmds_layout.setSpacing(5)
+        
+        # Build button
+        self.build_btn = QPushButton('▶ Build')
+        self.build_btn.setEnabled(False)
+        self.build_btn.clicked.connect(self.on_build_clicked)
+        general_cmds_layout.addWidget(self.build_btn)
+        
+        # Stop button
+        self.stop_btn = QPushButton('⏹ Stop')
+        self.stop_btn.setEnabled(False)
+        self.stop_btn.clicked.connect(self.on_stop_clicked)
+        general_cmds_layout.addWidget(self.stop_btn)
+        
+        # Clean button
+        self.clean_btn = QPushButton('🧹 Clean')
+        self.clean_btn.setEnabled(False)
+        self.clean_btn.clicked.connect(self.on_clean_clicked)
+        general_cmds_layout.addWidget(self.clean_btn)
+        
+        # Status button
+        self.status_btn = QPushButton('📊 Status')
+        self.status_btn.setEnabled(False)
+        self.status_btn.clicked.connect(self.on_bt_status_clicked)
+        general_cmds_layout.addWidget(self.status_btn)
+        
+        # Pull button
+        self.pull_btn = QPushButton('⬇ Pull')
+        self.pull_btn.setEnabled(False)
+        self.pull_btn.clicked.connect(self.on_bt_pull_clicked)
+        general_cmds_layout.addWidget(self.pull_btn)
+        
+        # Push button
+        self.push_btn = QPushButton('⬆ Push')
+        self.push_btn.setEnabled(False)
+        self.push_btn.clicked.connect(self.on_bt_push_clicked)
+        general_cmds_layout.addWidget(self.push_btn)
+        
+        # Merge button
+        self.merge_btn = QPushButton('🔀 Merge')
+        self.merge_btn.setEnabled(False)
+        self.merge_btn.clicked.connect(self.on_bt_merge_clicked)
+        general_cmds_layout.addWidget(self.merge_btn)
+        
+        # Top button
+        self.top_btn = QPushButton('📁 Top')
+        self.top_btn.setEnabled(False)
+        self.top_btn.clicked.connect(self.on_bt_top_clicked)
+        general_cmds_layout.addWidget(self.top_btn)
+        
+        general_cmds_group.setLayout(general_cmds_layout)
+        layout.addWidget(general_cmds_group)
         
         layout.addStretch()
         
-        # Action buttons
-        refresh_btn = QPushButton('🔄 Refresh')
+        # Repo Operations group
+        repo_ops_group = QGroupBox('Repo Operations')
+        repo_ops_group.setStyleSheet('QGroupBox { font-weight: bold; color: #000000; }')
+        repo_ops_layout = QHBoxLayout()
+        repo_ops_layout.setContentsMargins(5, 5, 5, 5)
+        repo_ops_layout.setSpacing(5)
+        
+        # Add Repo button
+        add_repo_btn = QPushButton('🔗 Attach Repo')
+        add_repo_btn.clicked.connect(self.on_add_repo_clicked)
+        repo_ops_layout.addWidget(add_repo_btn)
+        
+        # Delete Repo button
+        self.delete_repo_btn = QPushButton('⛓️‍💥 Detach Repo')
+        self.delete_repo_btn.setEnabled(False)
+        self.delete_repo_btn.clicked.connect(self.on_delete_repo_clicked)
+        repo_ops_layout.addWidget(self.delete_repo_btn)
+        
+        repo_ops_group.setLayout(repo_ops_layout)
+        layout.addWidget(repo_ops_group)
+        
+        # Worktree Operations group
+        worktree_ops_group = QGroupBox('Worktree Operations')
+        worktree_ops_group.setStyleSheet('QGroupBox { font-weight: bold; color: #000000; }')
+        worktree_ops_layout = QHBoxLayout()
+        worktree_ops_layout.setContentsMargins(5, 5, 5, 5)
+        worktree_ops_layout.setSpacing(5)
+        
+        # Create Worktree button
+        self.create_worktree_btn = QPushButton('🌿 Create Worktree')
+        self.create_worktree_btn.setEnabled(False)
+        self.create_worktree_btn.clicked.connect(self.on_create_worktree_clicked)
+        worktree_ops_layout.addWidget(self.create_worktree_btn)
+        
+        # Move Worktree button (worktree only)
+        self.move_btn = QPushButton('📦 Move')
+        self.move_btn.setEnabled(False)
+        self.move_btn.clicked.connect(self.on_bt_move_clicked)
+        worktree_ops_layout.addWidget(self.move_btn)
+        
+        # Destroy Worktree button
+        self.destroy_worktree_btn = QPushButton('❌ Destroy Worktree')
+        self.destroy_worktree_btn.setEnabled(False)
+        self.destroy_worktree_btn.clicked.connect(self.on_destroy_worktree_clicked)
+        worktree_ops_layout.addWidget(self.destroy_worktree_btn)
+        
+        worktree_ops_group.setLayout(worktree_ops_layout)
+        layout.addWidget(worktree_ops_group)
+        
+        # Refresh button
+        refresh_btn = QPushButton('⟳ Refresh')
         refresh_btn.clicked.connect(self.discover_workspaces)
         layout.addWidget(refresh_btn)
         
         return layout
     
-    def create_workspace_panel(self):
-        """Create left panel with workspace tree"""
-        group = QGroupBox('Available Platforms')
-        group.setStyleSheet('QGroupBox { font-weight: bold; color: #000000; }')
-        layout = QVBoxLayout()
+    def add_workspace_tab(self, workspace_path, tab_name=None):
+        """Add a single workspace tab without refreshing everything"""
+        if not os.path.isdir(workspace_path):
+            return None
         
-        # Platform tree
-        self.platform_tree = QTreeWidget()
-        self.platform_tree.setHeaderLabels(['Platform', 'Info'])
-        self.platform_tree.setColumnWidth(0, 200)
-        self.platform_tree.setColumnWidth(1, 300)
-        self.platform_tree.setAlternatingRowColors(False)  # Disable to avoid spacing issues
-        self.platform_tree.setUniformRowHeights(True)
-        self.platform_tree.setRootIsDecorated(False)  # Remove expand/collapse icons
-        self.platform_tree.setIndentation(0)  # Remove indentation
-        self.platform_tree.setStyleSheet('''
-            QTreeWidget { 
-                background-color: white; 
-                color: black;
-                outline: 0;
-            }
-            QTreeWidget::item {
-                padding: 4px 2px;
-                margin: 0px;
-                border: 0px;
-            }
-            QTreeWidget::item:hover {
-                background-color: #e5f3ff;
-                color: black;
-            }
-            QTreeWidget::item:selected {
-                background-color: #0078d4;
-                color: white;
-            }
-        ''')
-        self.platform_tree.itemDoubleClicked.connect(self.on_platform_selected)
-        layout.addWidget(self.platform_tree)
+        # Generate tab name if not provided
+        if tab_name is None:
+            tab_name = os.path.basename(workspace_path)
+            if not tab_name:
+                tab_name = workspace_path
         
-        group.setLayout(layout)
-        return group
+        # Create tab for this workspace
+        tab = WorkspaceTab(workspace_path, self.discovery, self)
+        
+        # Determine if this is a worktree
+        is_wt = self.is_worktree(workspace_path)
+        
+        # Use the original name (no prefix)
+        display_name = tab_name
+        
+        # Find the correct insertion position (repos before worktrees)
+        insert_index = self.tab_widget.count()  # Default to end
+        for i in range(self.tab_widget.count()):
+            existing_tab = self.tab_widget.widget(i)
+            # Find the corresponding path
+            existing_path = None
+            for path, t in self.workspace_tabs.items():
+                if t == existing_tab:
+                    existing_path = path
+                    break
+            
+            if existing_path:
+                existing_is_wt = self.is_worktree(existing_path)
+                # If we're adding a repo and current tab is a worktree, insert here
+                if not is_wt and existing_is_wt:
+                    insert_index = i
+                    break
+        
+        tab_index = self.tab_widget.insertTab(insert_index, tab, display_name)
+        
+        # Store whether this is a worktree for reference
+        self.tab_widget.tabBar().setTabData(tab_index, {"is_worktree": is_wt})
+        
+        self.workspace_tabs[workspace_path] = tab
+        print(f"  Added tab: {tab_name} -> {workspace_path}")
+        
+        return tab
     
-    def create_build_panel(self):
-        """Create right panel with build controls and output"""
-        widget = QWidget()
-        layout = QVBoxLayout()
+    def _load_email_setting(self):
+        """Load and display the email setting from ~/.bt/email"""
+        email_file = os.path.join(self.discovery.cache_dir, 'email')
+        email = '-'
+        if os.path.exists(email_file):
+            try:
+                with open(email_file, 'r') as f:
+                    email = f.read().strip() or '-'
+            except Exception:
+                pass
+        self.email_setting_btn.setText(f'Email: {email}')
+    
+    def edit_email_setting(self):
+        """Edit the email setting with validation"""
+        from PyQt6.QtWidgets import QInputDialog
+        import re
         
-        # Build configuration
-        config_group = QGroupBox('Build Configuration')
-        config_group.setStyleSheet('QGroupBox { font-weight: bold; color: #000000; }')
-        config_layout = QVBoxLayout()
+        # Get current value from ~/.bt/email
+        email_file = os.path.join(self.discovery.cache_dir, 'email')
+        current = ''
+        if os.path.exists(email_file):
+            try:
+                with open(email_file, 'r') as f:
+                    current = f.read().strip()
+            except Exception:
+                pass
         
-        # Platform info
-        info_layout = QHBoxLayout()
-        info_layout.addWidget(QLabel('Platform:'))
-        self.platform_label = QLabel('<none selected>')
-        self.platform_label.setStyleSheet('font-weight: bold; color: #0078d4;')
-        info_layout.addWidget(self.platform_label)
-        info_layout.addStretch()
-        config_layout.addLayout(info_layout)
+        text, ok = QInputDialog.getText(self, 'Edit Email', 'Enter email address:', text=current)
         
-        # Build type selector
-        type_layout = QHBoxLayout()
-        type_layout.addWidget(QLabel('Build Type:'))
-        self.build_type_combo = QComboBox()
-        self.build_type_combo.addItems(['DEBUG', 'RELEASE'])
-        type_layout.addWidget(self.build_type_combo)
-        type_layout.addStretch()
-        config_layout.addLayout(type_layout)
-        
-        # Build buttons
-        btn_layout = QHBoxLayout()
-        self.build_btn = QPushButton('▶ Build')
-        self.build_btn.setEnabled(False)
-        self.build_btn.clicked.connect(self.start_build)
-        btn_layout.addWidget(self.build_btn)
-        
-        self.stop_btn = QPushButton('⏹ Stop')
-        self.stop_btn.setEnabled(False)
-        self.stop_btn.clicked.connect(self.stop_build)
-        btn_layout.addWidget(self.stop_btn)
-        
-        self.clean_btn = QPushButton('🧹 Clean')
-        self.clean_btn.setEnabled(False)
-        btn_layout.addWidget(self.clean_btn)
-        
-        btn_layout.addStretch()
-        config_layout.addLayout(btn_layout)
-        
-        config_group.setLayout(config_layout)
-        layout.addWidget(config_group)
-        
-        # Progress
-        progress_group = QGroupBox('Build Progress')
-        progress_group.setStyleSheet('QGroupBox { font-weight: bold; color: #000000; }')
-        progress_layout = QVBoxLayout()
-        
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setTextVisible(True)
-        progress_layout.addWidget(self.progress_bar)
-        
-        self.progress_label = QLabel('Modules: 0/0 (0%)')
-        progress_layout.addWidget(self.progress_label)
-        
-        progress_group.setLayout(progress_layout)
-        layout.addWidget(progress_group)
-        
-        # Build output
-        output_group = QGroupBox('Build Output')
-        output_group.setStyleSheet('QGroupBox { font-weight: bold; color: #000000; }')
-        output_layout = QVBoxLayout()
-        
-        self.output_text = QTextEdit()
-        self.output_text.setReadOnly(True)
-        self.output_text.setFont(QFont('Consolas', 9))
-        output_layout.addWidget(self.output_text)
-        
-        # Clear button
-        clear_btn = QPushButton('Clear Output')
-        clear_btn.clicked.connect(self.output_text.clear)
-        output_layout.addWidget(clear_btn)
-        
-        output_group.setLayout(output_layout)
-        layout.addWidget(output_group)
-        
-        widget.setLayout(layout)
-        return widget
+        if ok:
+            if text.strip():
+                # Validate email format
+                email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+                if re.match(email_pattern, text.strip()):
+                    # Save to file
+                    os.makedirs(self.discovery.cache_dir, exist_ok=True)
+                    with open(email_file, 'w') as f:
+                        f.write(text.strip())
+                    self._load_email_setting()
+                    self.status_bar.showMessage(f'Email updated: {text.strip()}', 3000)
+                else:
+                    QMessageBox.warning(
+                        self,
+                        'Invalid Email',
+                        f'"{text}" is not a valid email address.\n\nPlease enter a valid email like: user@example.com'
+                    )
+            else:
+                # Clear the email
+                if os.path.exists(email_file):
+                    os.remove(email_file)
+                self._load_email_setting()
+                self.status_bar.showMessage('Email cleared', 3000)
     
     def discover_workspaces(self):
-        """Discover all workspaces and platforms"""
+        """Discover all workspaces and create tabs - only update what changed"""
         self.status_bar.showMessage('Discovering workspaces...')
         
         repos = self.discovery.get_repositories()
-        print(f"Found {len(repos)} repositories/worktrees: {repos}")
+        print(f"\n=== Discovering {len(repos)} repositories/worktrees ===")
         
-        # Update workspace combo
-        self.workspace_combo.clear()
-        for repo in repos:
-            if os.path.isdir(repo):
-                self.workspace_combo.addItem(repo)
-                print(f"  Added to dropdown: {repo}")
+        # Normalize all paths for comparison
+        discovered_repos = {os.path.normcase(os.path.normpath(repo)): repo for repo in repos if os.path.isdir(repo)}
+        existing_tabs = {os.path.normcase(os.path.normpath(path)): path for path in self.workspace_tabs.keys()}
         
-        self.status_bar.showMessage(f'Found {len(repos)} workspace(s)', 3000)
+        # Find tabs to remove (workspaces that no longer exist)
+        tabs_to_remove = set(existing_tabs.keys()) - set(discovered_repos.keys())
         
-        # Trigger discovery for first workspace if available
-        if self.workspace_combo.count() > 0:
-            self.on_workspace_changed(self.workspace_combo.currentText())
-    
-    def on_workspace_changed(self, workspace):
-        """Handle workspace selection change"""
-        if not workspace:
-            print("No workspace selected")
-            return
+        # Find tabs to add (new workspaces)
+        tabs_to_add = set(discovered_repos.keys()) - set(existing_tabs.keys())
         
-        print(f"\n=== Scanning workspace: {workspace} ===")
-        self.current_workspace = workspace
-        self.platform_tree.clear()
-        self.status_bar.showMessage(f'Scanning {workspace}...')
-        
-        # Discover platforms
-        platforms = self.discovery.discover_platforms(workspace)
-        print(f"Found {len(platforms)} platforms")
-        
-        for platform in platforms:
-            # Skip platforms with empty names (shouldn't happen, but be safe)
-            if not platform.get('name') or not platform['name'].strip():
-                continue
-                
-            print(f"  Platform: {platform['name']} at {platform['path']}")
-            item = QTreeWidgetItem(self.platform_tree)
+        # Remove tabs for workspaces that no longer exist
+        for normalized_path in tabs_to_remove:
+            original_path = existing_tabs[normalized_path]
+            tab = self.workspace_tabs[original_path]
             
-            # Add star for currently active platform
-            name = platform['name']
-            if platform.get('is_current'):
-                name = f"★ {name}"
-            item.setText(0, name)
+            # Find the tab index
+            for i in range(self.tab_widget.count()):
+                if self.tab_widget.widget(i) == tab:
+                    # Close the shell process
+                    if hasattr(tab, 'cmd_output') and hasattr(tab.cmd_output, 'shell_process'):
+                        tab.cmd_output.shell_process.kill()
+                        tab.cmd_output.shell_process.waitForFinished(1000)
+                    
+                    # Remove the tab
+                    self.tab_widget.removeTab(i)
+                    del self.workspace_tabs[original_path]
+                    print(f"  Removed tab: {original_path} (no longer exists)")
+                    break
+        
+        # Add tabs for new workspaces
+        for normalized_path in tabs_to_add:
+            repo = discovered_repos[normalized_path]
+            tab_name = os.path.basename(repo)
+            if not tab_name:
+                tab_name = repo
             
-            # Build info text
-            info_parts = []
-            if platform.get('is_current'):
-                info_parts.append('ACTIVE')
-            if platform['cached_count']:
-                info_parts.append(f"{platform['cached_count']} modules")
-            if platform['last_build']:
-                time_ago = datetime.now() - platform['last_build']
-                if time_ago.days > 0:
-                    info_parts.append(f"Built {time_ago.days}d ago")
-                elif time_ago.seconds > 3600:
-                    info_parts.append(f"Built {time_ago.seconds // 3600}h ago")
-                else:
-                    info_parts.append(f"Built {time_ago.seconds // 60}m ago")
+            # Create tab for this workspace - temporarily add it
+            tab = WorkspaceTab(repo, self.discovery, self)
+            self.workspace_tabs[repo] = tab
+            print(f"  Added tab: {tab_name} -> {repo}")
+        
+        # Now reorganize all tabs: repos first (blue), then worktrees (green)
+        # Clear tabs from widget but keep workspace_tabs dict
+        tab_widgets = []
+        for path, tab in self.workspace_tabs.items():
+            tab_widgets.append((path, tab, self.is_worktree(path)))
+        
+        # Sort: repos (False) before worktrees (True)
+        tab_widgets.sort(key=lambda x: (x[2], os.path.basename(x[0])))
+        
+        # Remove all tabs and re-add in correct order
+        self.tab_widget.clear()
+        
+        # Track if we've added the divider
+        divider_added = False
+        has_repos = any(not is_wt for _, _, is_wt in tab_widgets)
+        has_worktrees = any(is_wt for _, _, is_wt in tab_widgets)
+        
+        for path, tab, is_wt in tab_widgets:
+            # Add divider before first worktree (if we have both repos and worktrees)
+            if is_wt and not divider_added and has_repos and has_worktrees:
+                divider_index = self.tab_widget.addTab(QWidget(), "│")
+                self.tab_widget.setTabEnabled(divider_index, False)
+                self.tab_widget.tabBar().setTabData(divider_index, {"is_divider": True})
+                # Make divider tab very narrow
+                self.tab_widget.tabBar().setStyleSheet("""
+                    QTabBar::tab {
+                        padding: 4px 8px;
+                        min-width: 40px;
+                        max-width: 120px;
+                    }
+                    QTabBar::tab:disabled {
+                        padding: 0px 2px;
+                        min-width: 8px;
+                        max-width: 8px;
+                        color: #888888;
+                    }
+                """)
+                divider_added = True
             
-            info_text = ', '.join(info_parts) if info_parts else 'Not built'
-            item.setText(1, info_text)
-            item.setData(0, Qt.ItemDataRole.UserRole, platform)
-            print(f"    Info: {info_text}")
+            tab_name = os.path.basename(path) if os.path.basename(path) else path
+            tab_index = self.tab_widget.addTab(tab, tab_name)
+            
+            # Store whether this is a worktree for reference
+            self.tab_widget.tabBar().setTabData(tab_index, {"is_worktree": is_wt})
         
-        self.platform_tree.expandAll()
-        self.platform_tree.update()  # Force Qt to refresh the widget
-        self.status_bar.showMessage(f'Found {len(platforms)} platform(s) in {os.path.basename(workspace)}', 3000)
-        print(f"Tree now has {self.platform_tree.topLevelItemCount()} items\n")
+        if len(discovered_repos) == 0:
+            self.status_bar.showMessage('No repositories configured. Use "Attach Repo" to add one.', 0)
+        else:
+            self.status_bar.showMessage(f'Found {len(discovered_repos)} workspace(s)', 3000)
+        
+        # Select the first tab if none selected
+        if self.tab_widget.count() > 0 and self.tab_widget.currentIndex() == -1:
+            self.tab_widget.setCurrentIndex(0)
+        
+        # Update button states and status bar
+        self.update_button_states()
+        self._update_status_bar_from_tab()
     
-    def on_platform_selected(self, item, column):
-        """Handle platform selection"""
-        platform = item.data(0, Qt.ItemDataRole.UserRole)
-        if platform:
-            self.current_platform = platform
-            self.platform_label.setText(f"{platform['name']} ({platform['path']})")
-            self.build_btn.setEnabled(True)
-            self.clean_btn.setEnabled(True)
-            self.status_bar.showMessage(f"Selected: {platform['name']}")
+    def on_tab_changed(self, index):
+        """Handle tab change"""
+        self.update_button_states()
+        self._update_status_bar_from_tab()
+        
+        if index >= 0:
+            tab = self.tab_widget.widget(index)
+            workspace_path = list(self.workspace_tabs.keys())[index] if index < len(self.workspace_tabs) else None
+            if workspace_path:
+                # Update console working directory when switching tabs
+                if isinstance(tab, WorkspaceTab) and hasattr(tab, 'cmd_output'):
+                    tab.cmd_output.set_working_directory(workspace_path)
     
-    def start_build(self):
-        """Start a build"""
-        if not self.current_workspace or not self.current_platform:
-            QMessageBox.warning(self, 'No Selection', 'Please select a workspace and platform first.')
-            return
+    def _update_status_bar_from_tab(self):
+        """Update status bar settings from current workspace tab"""
+        current_tab = self.get_current_tab()
         
-        platform_name = self.current_platform['name']
-        build_type = self.build_type_combo.currentText()
-        
-        # Clear output
-        self.output_text.clear()
-        self.output_text.append(f"=== Building {platform_name} ({build_type}) ===\n")
-        
-        # Reset progress
-        self.progress_bar.setValue(0)
-        self.progress_label.setText('Starting build...')
-        
-        # Disable build button, enable stop
-        self.build_btn.setEnabled(False)
-        self.stop_btn.setEnabled(True)
-        
-        # Start build thread
-        self.build_thread = BuildThread(self.current_workspace, platform_name, build_type)
-        self.build_thread.output_ready.connect(self.append_output)
-        self.build_thread.progress_update.connect(self.update_progress)
-        self.build_thread.build_finished.connect(self.build_completed)
-        self.build_thread.start()
-        
-        self.status_bar.showMessage(f'Building {platform_name}...')
+        if current_tab and isinstance(current_tab, WorkspaceTab):
+            settings = current_tab.local_settings
+            
+            # Update toggle buttons (values are 'on', 'off', or None)
+            alert_val = settings.get('alert') or 'off'
+            self.status_alert_btn.setText(alert_val)
+            self.status_alert_btn.setChecked(alert_val == 'on')
+            
+            itp_val = settings.get('itp') or 'off'
+            self.status_itp_btn.setText(itp_val)
+            self.status_itp_btn.setChecked(itp_val != 'off' and itp_val != '')
+            
+            release_val = settings.get('release') or 'off'
+            self.status_release_btn.setText(release_val)
+            self.status_release_btn.setChecked(release_val == 'on')
+            
+            warnings_val = settings.get('warnings') or 'off'
+            self.status_warnings_btn.setText(warnings_val)
+            self.status_warnings_btn.setChecked(warnings_val == 'on')
+            
+            # Update editable settings
+            self.status_bmc_btn.setText(settings.get('bmc') or '-')
+            self.status_name_btn.setText(settings.get('name') or '-')
+            
+            # Update read-only settings
+            self.status_branch_label.setText(settings.get('branch') or '-')
+            self.status_cpu_label.setText(settings.get('cpu') or '-')
+            self.status_platform_label.setText(settings.get('platform') or '-')
+            self.status_vendor_label.setText(settings.get('vendor') or '-')
+        else:
+            # No tab selected - show defaults
+            self.status_alert_btn.setText('-')
+            self.status_alert_btn.setChecked(False)
+            self.status_itp_btn.setText('-')
+            self.status_itp_btn.setChecked(False)
+            self.status_release_btn.setText('-')
+            self.status_release_btn.setChecked(False)
+            self.status_warnings_btn.setText('-')
+            self.status_warnings_btn.setChecked(False)
+            self.status_bmc_btn.setText('-')
+            self.status_name_btn.setText('-')
+            self.status_branch_label.setText('-')
+            self.status_cpu_label.setText('-')
+            self.status_platform_label.setText('-')
+            self.status_vendor_label.setText('-')
     
-    def stop_build(self):
-        """Stop the current build"""
-        if self.build_thread:
-            self.build_thread.stop()
-            self.output_text.append("\n*** Build stopped by user ***\n")
+    def _toggle_local_setting(self, setting_name):
+        """Toggle a local setting for the current workspace"""
+        current_tab = self.get_current_tab()
+        if current_tab and isinstance(current_tab, WorkspaceTab):
+            current_tab.toggle_setting(setting_name)
+            self._update_status_bar_from_tab()
+    
+    def _edit_local_setting(self, setting_name):
+        """Edit a local setting for the current workspace"""
+        current_tab = self.get_current_tab()
+        if current_tab and isinstance(current_tab, WorkspaceTab):
+            if setting_name == 'bmc':
+                current_tab.edit_bmc()
+            elif setting_name == 'name':
+                current_tab.edit_name()
+            self._update_status_bar_from_tab()
+    
+    def get_current_tab(self):
+        """Get the currently active workspace tab"""
+        index = self.tab_widget.currentIndex()
+        if index >= 0:
+            return self.tab_widget.widget(index)
+        return None
+    
+    def update_button_states(self):
+        """Update button enabled/disabled states based on current tab"""
+        current_tab = self.get_current_tab()
+        
+        if current_tab and isinstance(current_tab, WorkspaceTab):
+            has_platform = current_tab.has_platform_selected()
+            is_building = current_tab.is_building()
+            is_main_repo = self.is_main_repo(current_tab.workspace_path)
+            is_worktree = self.is_worktree(current_tab.workspace_path)
+            is_git_repo = os.path.isdir(os.path.join(current_tab.workspace_path, '.git'))
+            
+            self.build_btn.setEnabled(has_platform and not is_building)
+            self.stop_btn.setEnabled(is_building)
+            self.clean_btn.setEnabled(has_platform and not is_building)
+            self.delete_repo_btn.setEnabled(is_main_repo)
+            self.create_worktree_btn.setEnabled(is_main_repo and is_git_repo and not is_building)
+            self.destroy_worktree_btn.setEnabled(is_worktree and not is_building)
+            
+            # BT Commands - enabled for both repos and worktrees (not during build)
+            self.status_btn.setEnabled(not is_building)
+            self.pull_btn.setEnabled(not is_building)
+            self.push_btn.setEnabled(not is_building)
+            self.merge_btn.setEnabled(not is_building)
+            self.top_btn.setEnabled(not is_building)
+            # Move is only for worktrees
+            self.move_btn.setEnabled(is_worktree and not is_building)
+        else:
+            self.build_btn.setEnabled(False)
             self.stop_btn.setEnabled(False)
-            self.build_btn.setEnabled(True)
+            self.clean_btn.setEnabled(False)
+            self.delete_repo_btn.setEnabled(False)
+            self.create_worktree_btn.setEnabled(False)
+            self.destroy_worktree_btn.setEnabled(False)
+            self.status_btn.setEnabled(False)
+            self.pull_btn.setEnabled(False)
+            self.push_btn.setEnabled(False)
+            self.merge_btn.setEnabled(False)
+            self.top_btn.setEnabled(False)
+            self.move_btn.setEnabled(False)
+    
+    def on_build_clicked(self):
+        """Handle build button click"""
+        current_tab = self.get_current_tab()
+        if current_tab and isinstance(current_tab, WorkspaceTab):
+            if current_tab.start_build():
+                self.status_bar.showMessage(f'Building {current_tab.current_platform["name"]}...')
+                self.update_button_states()
+    
+    def on_stop_clicked(self):
+        """Handle stop button click"""
+        current_tab = self.get_current_tab()
+        if current_tab and isinstance(current_tab, WorkspaceTab):
+            current_tab.stop_build()
             self.status_bar.showMessage('Build stopped')
+            self.update_button_states()
     
-    def append_output(self, text):
-        """Append text to build output"""
-        # Color-code errors and warnings
-        if 'ERROR' in text:
-            self.output_text.setTextColor(QColor('#ff6b6b'))
-        elif 'WARNING' in text:
-            self.output_text.setTextColor(QColor('#ffd93d'))
+    def on_clean_clicked(self):
+        """Handle clean button click"""
+        current_tab = self.get_current_tab()
+        if current_tab and isinstance(current_tab, WorkspaceTab):
+            # TODO: Implement clean functionality
+            QMessageBox.information(self, 'Clean', 'Clean functionality not yet implemented')
+            self.status_bar.showMessage('Clean requested')
+    
+    def is_main_repo(self, path):
+        """Check if the path is a main repository (not a worktree)"""
+        if not path:
+            return False
+        
+        path = os.path.normpath(os.path.abspath(path))
+        
+        # Read repositories file
+        repo_file = os.path.join(self.discovery.cache_dir, 'repositories')
+        if not os.path.exists(repo_file):
+            return False
+        
+        with open(repo_file, 'r') as f:
+            content = f.read().strip()
+            if content:
+                for line in content.split('\n'):
+                    for repo in line.split(','):
+                        repo = repo.strip()
+                        if repo:
+                            repo_normalized = os.path.normpath(os.path.abspath(repo))
+                            if repo_normalized.lower() == path.lower():
+                                return True
+        
+        return False
+    
+    def is_worktree(self, path):
+        """Check if the given path is a git worktree (not a main repo)"""
+        path = os.path.normpath(os.path.abspath(path))
+        
+        # Check if .git is a file (worktrees have .git as a file, not directory)
+        git_path = os.path.join(path, '.git')
+        if os.path.isfile(git_path):
+            return True
+        
+        return False
+    
+    def on_delete_repo_clicked(self):
+        """Handle delete repo button click"""
+        current_tab = self.get_current_tab()
+        if not current_tab or not isinstance(current_tab, WorkspaceTab):
+            return
+        
+        repo_path = current_tab.workspace_path
+        
+        # Check if it's a git repo with worktrees
+        worktrees = []
+        is_git = os.path.isdir(os.path.join(repo_path, '.git'))
+        if is_git:
+            worktrees = self.discovery.get_worktrees(repo_path)
+        
+        # Confirm deletion
+        from PyQt6.QtWidgets import QMessageBox
+        
+        if worktrees:
+            # Show warning about worktrees
+            worktree_list = '\n'.join([f'  - {os.path.basename(wt)}' for wt in worktrees])
+            reply = QMessageBox.question(
+                self,
+                'Delete Repository',
+                f'Are you sure you want to remove this repository from the list?\n\n'
+                f'Path: {repo_path}\n\n'
+                f'WARNING: This repository has {len(worktrees)} associated worktree(s):\n{worktree_list}\n\n'
+                f'All worktree tabs will also be removed from the GUI.\n\n'
+                f'Note: This only removes them from the GUI. The repository and worktree files will not be deleted.',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
         else:
-            self.output_text.setTextColor(QColor('#d4d4d4'))
+            reply = QMessageBox.question(
+                self,
+                'Delete Repository',
+                f'Are you sure you want to remove this repository from the list?\n\n'
+                f'Path: {repo_path}\n\n'
+                f'Note: This only removes it from the GUI. The repository files will not be deleted.',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
         
-        self.output_text.insertPlainText(text)
-        self.output_text.setTextColor(QColor('#d4d4d4'))
+        if reply != QMessageBox.StandardButton.Yes:
+            return
         
-        # Auto-scroll to bottom
-        cursor = self.output_text.textCursor()
+        # Remove from repositories file
+        repo_file = os.path.join(self.discovery.cache_dir, 'repositories')
+        existing_repos = []
+        
+        if os.path.exists(repo_file):
+            with open(repo_file, 'r') as f:
+                content = f.read().strip()
+                if content:
+                    for line in content.split('\n'):
+                        for repo in line.split(','):
+                            repo = repo.strip()
+                            if repo:
+                                repo_normalized = os.path.normpath(os.path.abspath(repo))
+                                path_normalized = os.path.normpath(os.path.abspath(repo_path))
+                                if repo_normalized.lower() != path_normalized.lower():
+                                    existing_repos.append(repo_normalized)
+        
+        # Write back to repositories file
+        with open(repo_file, 'w') as f:
+            if existing_repos:
+                f.write(','.join(existing_repos))
+            else:
+                f.write('')
+        
+        # Also check and remove from 'repo' file (single repository file)
+        single_repo_file = os.path.join(self.discovery.cache_dir, 'repo')
+        should_delete_single_repo = False
+        if os.path.exists(single_repo_file):
+            with open(single_repo_file, 'r') as f:
+                single_repo = f.read().strip()
+                if single_repo:
+                    single_repo_normalized = os.path.normpath(os.path.abspath(single_repo))
+                    path_normalized = os.path.normpath(os.path.abspath(repo_path))
+                    if single_repo_normalized.lower() == path_normalized.lower():
+                        should_delete_single_repo = True
+            
+            # Delete after closing the file
+            if should_delete_single_repo:
+                try:
+                    os.remove(single_repo_file)
+                except Exception as e:
+                    print(f"Error removing repo file: {e}")
+        
+        # Refresh to remove tabs - this will clear and recreate all tabs
+        # which automatically removes the deleted repo's tab and any associated worktree tabs
+        self.discover_workspaces()
+        
+        self.status_bar.showMessage(f'Removed repository: {os.path.basename(repo_path)}', 5000)
+    
+    def on_create_worktree_clicked(self):
+        """Handle create worktree button click"""
+        from PyQt6.QtWidgets import QInputDialog, QMessageBox
+        
+        current_tab = self.get_current_tab()
+        if not current_tab or not isinstance(current_tab, WorkspaceTab):
+            return
+        
+        repo_path = current_tab.workspace_path
+        
+        # Get branch name
+        branch_name, ok = QInputDialog.getText(
+            self,
+            'Create Worktree',
+            'Enter branch name for the new worktree:'
+        )
+        
+        if not ok or not branch_name:
+            return
+        
+        # Normalize branch name - always use forward slashes for git branches
+        branch_name = branch_name.strip().replace('\\', '/')
+        
+        # Get worktree directory name
+        # Default to ..\<last-part-of-branch>
+        default_worktree_dir = f"..\\{branch_name.split('/')[-1]}"
+        worktree_name, ok = QInputDialog.getText(
+            self,
+            'Create Worktree',
+            'Enter directory name for the worktree:',
+            text=default_worktree_dir
+        )
+        
+        if not ok or not worktree_name:
+            return
+        
+        # Get commitish (optional, defaults to HEAD)
+        commitish, ok = QInputDialog.getText(
+            self,
+            'Create Worktree',
+            'Enter commitish (commit/tag/branch) to checkout (leave empty for HEAD):',
+            text='HEAD'
+        )
+        
+        if not ok:
+            return
+        
+        # If empty or just whitespace, use HEAD
+        if not commitish or not commitish.strip():
+            commitish = 'HEAD'
+        else:
+            commitish = commitish.strip()
+        
+        # Create worktree path - resolve relative to repo directory, not parent
+        if os.path.isabs(worktree_name):
+            # Absolute path - use as-is
+            worktree_path = os.path.normpath(worktree_name)
+        else:
+            # Relative path - resolve relative to repo directory
+            worktree_path = os.path.normpath(os.path.join(repo_path, worktree_name))
+        
+        # Normalize path separators for the worktree path
+        if sys.platform == 'win32':
+            # Windows: convert forward slashes to backslashes
+            worktree_path = worktree_path.replace('/', '\\')
+        else:
+            # Linux/Unix: convert backslashes to forward slashes
+            worktree_path = worktree_path.replace('\\', '/')
+        
+        if os.path.exists(worktree_path):
+            QMessageBox.warning(
+                self,
+                'Create Worktree',
+                f'Directory already exists: {worktree_path}'
+            )
+            return
+        
+        if not hasattr(current_tab, 'cmd_output'):
+            QMessageBox.warning(
+                self,
+                'Create Worktree',
+                'Command output window is not available. Cannot execute command.'
+            )
+            return
+        
+        # Run bt create via QProcess - capture output to detect completion strings
+        # while also displaying output in the output window for user visibility
+        process = QProcess(self)
+        process.setWorkingDirectory(repo_path)
+        process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+        
+        # Store context for handlers
+        process.repo_path = repo_path
+        process.worktree_path = worktree_path
+        process.worktree_name = worktree_name
+        process.current_tab = current_tab
+        process.output_buffer = ""  # Accumulate output to search for completion strings
+        
+        # Connect handlers - need both stdout and stderr even with MergedChannels
+        process.readyReadStandardOutput.connect(lambda: self._handle_create_output(process))
+        process.readyReadStandardError.connect(lambda: self._handle_create_output(process))
+        process.errorOccurred.connect(lambda error: self._handle_create_error(process, error))
+        
+        # Disable input while process is running
+        current_tab.cmd_output.set_input_enabled(False)
+        
+        # Start the process
+        # Format: bt create /repo <path-to-repo> <branch> <path-to-target-directory> [commitish]
+        # Use bt.cmd on Windows (via cmd.exe /c), bt.sh on Linux
+        if sys.platform == 'win32':
+            bt_executable = 'bt.cmd'
+            bt_cmd = ['cmd.exe', '/c', bt_executable, 'create', '/repo', repo_path, branch_name, worktree_path, commitish]
+        else:
+            bt_executable = 'bt.sh'
+            bt_cmd = [bt_executable, 'create', '/repo', repo_path, branch_name, worktree_path, commitish]
+        
+        # Show command in output window BEFORE starting
+        bt_cmd_str = f'{bt_executable} create /repo "{repo_path}" {branch_name} "{worktree_path}" {commitish}'
+        # Insert the command at the current cursor position (after prompt)
+        cursor = current_tab.cmd_output.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
-        self.output_text.setTextCursor(cursor)
-    
-    def update_progress(self, current, total, percentage):
-        """Update progress bar"""
-        self.progress_bar.setMaximum(total)
-        self.progress_bar.setValue(current)
-        self.progress_label.setText(f'Modules: {current}/{total} ({percentage}%)')
-    
-    def build_completed(self, success):
-        """Handle build completion"""
-        self.build_btn.setEnabled(True)
-        self.stop_btn.setEnabled(False)
+        cursor.insertText(bt_cmd_str + '\n')
+        current_tab.cmd_output.setTextCursor(cursor)
+        current_tab.cmd_output.ensureCursorVisible()
         
-        if success:
-            self.output_text.append("\n=== Build completed successfully ===\n")
-            self.status_bar.showMessage('Build completed successfully!', 5000)
-            QMessageBox.information(self, 'Build Complete', 
-                                   f'{self.current_platform["name"]} built successfully!')
+        # Start the process
+        process.start(bt_cmd[0], bt_cmd[1:])
+        
+        # Check if process started
+        if not process.waitForStarted(3000):
+            current_tab.cmd_output.append(f"ERROR: Failed to start process. Is '{bt_executable}' in your PATH?\n")
+            current_tab.cmd_output.append(f"Process error: {process.errorString()}\n")
+            QMessageBox.warning(
+                self,
+                'Process Error',
+                f"Failed to start bt command.\n\nError: {process.errorString()}\n\nMake sure '{bt_executable}' is in your PATH."
+            )
+            return
+        
+        self.status_bar.showMessage(f'Creating worktree: {worktree_name}...', 5000)
+    
+    def _handle_create_output(self, process):
+        """Handle output from bt create command - display in output window and check for completion"""
+        if not hasattr(process, 'current_tab') or not hasattr(process.current_tab, 'cmd_output'):
+            return
+        
+        # Read both stdout and stderr
+        stdout = process.readAllStandardOutput().data().decode('utf-8', errors='replace')
+        stderr = process.readAllStandardError().data().decode('utf-8', errors='replace')
+        
+        output = stdout + stderr
+        
+        # Display in output window
+        if output:
+            # Handle carriage returns (\r) - git uses these for progress updates
+            # Split by \r and only display the last segment to simulate overwriting behavior
+            lines = output.split('\n')
+            for line in lines:
+                if '\r' in line:
+                    # For lines with \r, only show the final segment
+                    segments = line.split('\r')
+                    for segment in segments[:-1]:
+                        # Clear the current line and write the segment
+                        cursor = process.current_tab.cmd_output.textCursor()
+                        cursor.movePosition(cursor.MoveOperation.StartOfLine, cursor.MoveMode.KeepAnchor)
+                        cursor.removeSelectedText()
+                        process.current_tab.cmd_output.insertPlainText(segment)
+                    # Write the final segment
+                    if segments[-1]:
+                        cursor = process.current_tab.cmd_output.textCursor()
+                        cursor.movePosition(cursor.MoveOperation.StartOfLine, cursor.MoveMode.KeepAnchor)
+                        cursor.removeSelectedText()
+                        process.current_tab.cmd_output.insertPlainText(segments[-1])
+                else:
+                    process.current_tab.cmd_output.insertPlainText(line)
+                
+                # Add newline back except for last line
+                if line != lines[-1]:
+                    process.current_tab.cmd_output.insertPlainText('\n')
+            
+            process.current_tab.cmd_output.ensureCursorVisible()
+            
+            # Accumulate in buffer to search for completion strings
+            # Replace \r with \n for proper string searching
+            process.output_buffer += output.replace('\r', '\n')
+            
+            # Check for completion strings
+            if "Create Worktree Passed!" in process.output_buffer:
+                # Success! Handle completion
+                QTimer.singleShot(500, lambda: self._handle_create_success(process))
+            elif "Create Worktree FAILED!" in process.output_buffer:
+                # Failed - just log, user already sees error in output window
+                QTimer.singleShot(500, lambda: self._handle_create_failure(process))
+    
+    def _handle_create_success(self, process):
+        """Handle successful worktree creation"""
+        # Re-enable input in the console
+        if hasattr(process, 'current_tab') and hasattr(process.current_tab, 'cmd_output'):
+            process.current_tab.cmd_output.set_input_enabled(True)
+        
+        # Add new tab for the worktree - use basename of path for tab name
+        worktree_basename = os.path.basename(process.worktree_path)
+        self.add_workspace_tab(process.worktree_path, worktree_basename)
+        
+        # Switch to the new tab
+        self.tab_widget.setCurrentIndex(self.tab_widget.count() - 1)
+        
+        self.status_bar.showMessage(f'Worktree created successfully: {worktree_basename}', 5000)
+    
+    def _handle_create_failure(self, process):
+        """Handle failed worktree creation"""
+        # Re-enable input in the console
+        if hasattr(process, 'current_tab') and hasattr(process.current_tab, 'cmd_output'):
+            process.current_tab.cmd_output.set_input_enabled(True)
+        
+        self.status_bar.showMessage(f'Failed to create worktree: {process.worktree_name}', 5000)
+    
+    def _handle_create_error(self, process, error):
+        """Handle process errors during worktree creation"""
+        if hasattr(process, 'current_tab') and hasattr(process.current_tab, 'cmd_output'):
+            error_msg = f"\nProcess error occurred: {process.errorString()}\n"
+            process.current_tab.cmd_output.append(error_msg)
+            process.current_tab.cmd_output.ensureCursorVisible()
+            # Re-enable input after error
+            process.current_tab.cmd_output.set_input_enabled(True)
+    
+    def on_destroy_worktree_clicked(self):
+        """Handle destroy worktree button click"""
+        from PyQt6.QtWidgets import QMessageBox
+        
+        current_tab = self.get_current_tab()
+        if not current_tab or not isinstance(current_tab, WorkspaceTab):
+            return
+        
+        worktree_path = current_tab.workspace_path
+        
+        # Check if this is actually a worktree (not a main repo)
+        git_file = os.path.join(worktree_path, '.git')
+        if not os.path.isfile(git_file):
+            QMessageBox.warning(
+                self,
+                'Destroy Worktree',
+                'This is not a worktree. Only worktrees can be destroyed using this button.'
+            )
+            return
+        
+        # Confirm deletion
+        reply = QMessageBox.question(
+            self,
+            'Destroy Worktree',
+            f'Are you sure you want to destroy this worktree?\n\n'
+            f'Path: {worktree_path}\n\n'
+            f'WARNING: This will remove the worktree from git.\n'
+            f'Any uncommitted changes will be lost!\n\n'
+            f'The directory will be removed from disk.',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        
+        # Find the main repo tab to switch to before destroying
+        repo_tab_index = -1
+        current_tab_index = self.tab_widget.currentIndex()
+        
+        # Find the main repo for this worktree
+        try:
+            # Read .git file to find main repo
+            with open(git_file, 'r') as f:
+                content = f.read().strip()
+                # Content is like: gitdir: /path/to/main/.git/worktrees/name
+                if content.startswith('gitdir: '):
+                    gitdir = content[8:].strip()
+                    # Extract main repo path
+                    main_git_dir = gitdir.split('.git/worktrees/')[0] + '.git'
+                    repo_path = os.path.dirname(main_git_dir)
+                    
+                    # Find the tab for the main repo (case-insensitive on Windows)
+                    repo_path_normalized = os.path.normcase(os.path.normpath(repo_path))
+                    for i in range(self.tab_widget.count()):
+                        tab = self.tab_widget.widget(i)
+                        if isinstance(tab, WorkspaceTab):
+                            tab_path_normalized = os.path.normcase(os.path.normpath(tab.workspace_path))
+                            if tab_path_normalized == repo_path_normalized:
+                                repo_tab_index = i
+                                break
+                else:
+                    raise Exception('Invalid .git file format')
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                'Error',
+                f'Error finding repository:\n\n{str(e)}'
+            )
+            return
+        
+        # Switch to the repo tab if found
+        if repo_tab_index >= 0:
+            self.tab_widget.setCurrentIndex(repo_tab_index)
+            repo_tab = self.tab_widget.widget(repo_tab_index)
         else:
-            self.output_text.append("\n=== Build failed ===\n")
-            self.status_bar.showMessage('Build failed', 5000)
-            QMessageBox.warning(self, 'Build Failed', 
-                               f'{self.current_platform["name"]} build failed. Check output for errors.')
+            QMessageBox.critical(
+                self,
+                'Error',
+                f'Could not find the main repository tab.\n\nPlease open the repository at:\n{repo_path}'
+            )
+            return
         
-        # Refresh platform info (cache may have updated)
-        self.on_workspace_changed(self.current_workspace)
+        # Close the worktree tab to release the file handle
+        # This is necessary on Windows to allow deletion
+        self.tab_widget.removeTab(current_tab_index)
+        
+        # Terminate the shell process in the worktree tab
+        if hasattr(current_tab, 'cmd_output') and hasattr(current_tab.cmd_output, 'shell_process'):
+            current_tab.cmd_output.shell_process.kill()
+            current_tab.cmd_output.shell_process.waitForFinished(1000)
+        
+        if not hasattr(repo_tab, 'cmd_output'):
+            QMessageBox.warning(
+                self,
+                'Destroy Worktree',
+                'Command output window is not available. Cannot execute command.'
+            )
+            return
+        
+        # Run bt destroy via QProcess
+        process = QProcess(self)
+        process.setWorkingDirectory(repo_path)
+        process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+        
+        # Store context for handlers
+        process.repo_path = repo_path
+        process.worktree_path = worktree_path
+        process.current_tab = repo_tab  # Use repo tab, not worktree tab
+        process.output_buffer = ""
+        
+        # Connect handlers
+        process.readyReadStandardOutput.connect(lambda: self._handle_destroy_output(process))
+        process.readyReadStandardError.connect(lambda: self._handle_destroy_output(process))
+        process.finished.connect(lambda exit_code, exit_status: self._handle_destroy_finished(process, exit_code))
+        process.errorOccurred.connect(lambda error: self._handle_destroy_error(process, error))
+        
+        # Use bt.cmd on Windows (via cmd.exe /c), bt.sh on Linux
+        if sys.platform == 'win32':
+            bt_executable = 'bt.cmd'
+            bt_cmd = ['cmd.exe', '/c', bt_executable, 'destroy', '/yes', worktree_path]
+        else:
+            bt_executable = 'bt.sh'
+            bt_cmd = [bt_executable, 'destroy', '/yes', worktree_path]
+        
+        # Show command in output window - insert at current cursor position
+        cursor = current_tab.cmd_output.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.insertText(f"\ncd {repo_path}\n")
+        cursor.insertText(f"{bt_executable} destroy /yes {worktree_path}\n")
+        current_tab.cmd_output.setTextCursor(cursor)
+        current_tab.cmd_output.ensureCursorVisible()
+        
+        # Start the process
+        process.start(bt_cmd[0], bt_cmd[1:])
+        
+        if not process.waitForStarted(3000):
+            QMessageBox.critical(
+                self,
+                'Error',
+                f'Failed to start {bt_executable}:\n\n{process.errorString()}'
+            )
+            return
+    
+    def _handle_destroy_output(self, process):
+        """Handle output from bt destroy command"""
+        if not hasattr(process, 'current_tab') or not hasattr(process.current_tab, 'cmd_output'):
+            return
+        
+        # Read output
+        output = process.readAllStandardOutput().data().decode('utf-8', errors='replace')
+        
+        if output:
+            process.current_tab.cmd_output.insertPlainText(output)
+            process.current_tab.cmd_output.ensureCursorVisible()
+            process.output_buffer += output
+    
+    def _handle_destroy_finished(self, process, exit_code):
+        """Handle completion of bt destroy command"""
+        if not hasattr(process, 'current_tab'):
+            return
+        
+        if exit_code == 0:
+            process.current_tab.cmd_output.append(f"\n{'='*80}\n")
+            process.current_tab.cmd_output.append("Destroy Worktree Completed Successfully!\n")
+            process.current_tab.cmd_output.append(f"{'='*80}\n\n")
+            process.current_tab.cmd_output.ensureCursorVisible()
+            
+            # Tab was already closed before destroying, no need to refresh
+            self.status_bar.showMessage(f'Worktree destroyed successfully', 5000)
+        else:
+            process.current_tab.cmd_output.append(f"\n{'='*80}\n")
+            process.current_tab.cmd_output.append(f"Destroy Worktree Failed! (exit code: {exit_code})\n")
+            process.current_tab.cmd_output.append(f"{'='*80}\n\n")
+            process.current_tab.cmd_output.ensureCursorVisible()
+            
+            self.status_bar.showMessage(f'Failed to destroy worktree (exit code: {exit_code})', 5000)
+    
+    def _handle_destroy_error(self, process, error):
+        """Handle process errors during worktree destruction"""
+        if hasattr(process, 'current_tab') and hasattr(process.current_tab, 'cmd_output'):
+            error_msg = f"\nProcess error occurred: {process.errorString()}\n"
+            process.current_tab.cmd_output.append(error_msg)
+            process.current_tab.cmd_output.ensureCursorVisible()
+    
+    def _run_bt_command(self, command, args=None):
+        """Run a bt command in the current tab's console"""
+        current_tab = self.get_current_tab()
+        if not current_tab or not isinstance(current_tab, WorkspaceTab):
+            return
+        
+        if not hasattr(current_tab, 'cmd_output'):
+            QMessageBox.warning(
+                self,
+                'Error',
+                'Command output window is not available.'
+            )
+            return
+        
+        workspace_path = current_tab.workspace_path
+        
+        # Build the command
+        if sys.platform == 'win32':
+            bt_executable = 'bt.cmd'
+        else:
+            bt_executable = 'bt.sh'
+        
+        cmd_parts = [bt_executable, command]
+        if args:
+            cmd_parts.extend(args)
+        
+        cmd_str = ' '.join(cmd_parts)
+        
+        # Send the command to the shell
+        current_tab.cmd_output.run_command(cmd_str)
+        
+        self.status_bar.showMessage(f'Running: bt {command}', 3000)
+    
+    def on_bt_status_clicked(self):
+        """Handle bt status button click"""
+        self._run_bt_command('status')
+    
+    def on_bt_pull_clicked(self):
+        """Handle bt pull button click"""
+        self._run_bt_command('pull')
+    
+    def on_bt_push_clicked(self):
+        """Handle bt push button click"""
+        self._run_bt_command('push')
+    
+    def on_bt_merge_clicked(self):
+        """Handle bt merge button click"""
+        self._run_bt_command('merge')
+    
+    def on_bt_top_clicked(self):
+        """Handle bt top button click"""
+        self._run_bt_command('top')
+    
+    def on_bt_move_clicked(self):
+        """Handle bt move button click (worktree only)"""
+        from PyQt6.QtWidgets import QInputDialog
+        
+        current_tab = self.get_current_tab()
+        if not current_tab or not isinstance(current_tab, WorkspaceTab):
+            return
+        
+        # Verify this is a worktree
+        if not self.is_worktree(current_tab.workspace_path):
+            QMessageBox.warning(
+                self,
+                'Move',
+                'Move is only available for worktrees.'
+            )
+            return
+        
+        # Get the new location
+        new_path, ok = QInputDialog.getText(
+            self,
+            'Move Worktree',
+            'Enter the new path for the worktree:',
+            text=current_tab.workspace_path
+        )
+        
+        if not ok or not new_path or new_path.strip() == current_tab.workspace_path:
+            return
+        
+        new_path = new_path.strip()
+        
+        # Confirm the move
+        reply = QMessageBox.question(
+            self,
+            'Move Worktree',
+            f'Move worktree to:\n\n{new_path}\n\nContinue?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        
+        self._run_bt_command('move', [new_path])
+    
+    def on_add_repo_clicked(self):
+        """Handle add repo button click"""
+        from PyQt6.QtWidgets import QFileDialog
+        
+        # Browse for directory
+        repo_path = QFileDialog.getExistingDirectory(
+            self,
+            'Select Repository Directory',
+            os.path.expanduser('~'),
+            QFileDialog.Option.ShowDirsOnly
+        )
+        
+        if not repo_path:
+            return
+        
+        # Normalize path
+        repo_path = os.path.normpath(os.path.abspath(repo_path))
+        
+        # Check if it's a valid repository (has .git or .svn)
+        is_git = os.path.isdir(os.path.join(repo_path, '.git'))
+        is_svn = os.path.isdir(os.path.join(repo_path, '.svn'))
+        
+        if not is_git and not is_svn:
+            QMessageBox.warning(
+                self,
+                'Invalid Repository',
+                f'The selected directory is not a valid repository.\n\n'
+                f'A repository must contain a .git or .svn directory.\n\n'
+                f'Path: {repo_path}'
+            )
+            return
+        
+        # Check if it's an HPE UEFI repository (has hpbuild.bat or hpbuild.sh)
+        has_hpbuild_bat = os.path.isfile(os.path.join(repo_path, 'hpbuild.bat'))
+        has_hpbuild_sh = os.path.isfile(os.path.join(repo_path, 'hpbuild.sh'))
+        
+        if not has_hpbuild_bat and not has_hpbuild_sh:
+            QMessageBox.warning(
+                self,
+                'Invalid HPE UEFI Repository',
+                f'The selected directory is not an HPE UEFI repository.\n\n'
+                f'An HPE UEFI repository must contain hpbuild.bat or hpbuild.sh.\n\n'
+                f'Path: {repo_path}'
+            )
+            return
+        
+        # Add to repositories file
+        repo_file = os.path.join(self.discovery.cache_dir, 'repositories')
+        
+        # Check if already exists
+        existing_repos = []
+        if os.path.exists(repo_file):
+            with open(repo_file, 'r') as f:
+                content = f.read().strip()
+                if content:
+                    for line in content.split('\n'):
+                        for repo in line.split(','):
+                            repo = repo.strip()
+                            if repo:
+                                existing_repos.append(os.path.normpath(os.path.abspath(repo)))
+        
+        # Case-insensitive comparison on Windows
+        repo_path_lower = repo_path.lower()
+        existing_repos_lower = [r.lower() for r in existing_repos]
+        
+        if repo_path_lower in existing_repos_lower:
+            QMessageBox.information(
+                self,
+                'Repository Already Exists',
+                f'This repository is already in the list.\n\nPath: {repo_path}'
+            )
+            return
+        
+        # Add to list
+        existing_repos.append(repo_path)
+        
+        # Write back to file
+        with open(repo_file, 'w') as f:
+            f.write(','.join(existing_repos))
+        
+        # Refresh to show new repo and its worktrees
+        self.discover_workspaces()
+        
+        QMessageBox.information(
+            self,
+            'Repository Added',
+            f'Repository has been added successfully.\n\nPath: {repo_path}'
+        )
+        
+        self.status_bar.showMessage(f'Added repository: {os.path.basename(repo_path)}')
 
 
 def main():
