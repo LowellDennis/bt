@@ -10,7 +10,7 @@ This project has **three main components**:
 
 ### 1. Base BT Tool (Root Directory)
 - The core command-line tool
-- Main entry points: `bt.cmd` (Windows), `bt.ps1` (PowerShell), `bt.py`
+- Main entry points: `bt.cmd` (Windows), `bt.ps1` (PowerShell), `bt.sh` (Linux/macOS), `bt.py`
 - Commands are organized in subdirectories (e.g., `build/`, `clean/`, `config/`)
 - Each command subdirectory contains:
   - `terse.txt` - Brief description
