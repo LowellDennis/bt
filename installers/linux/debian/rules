@@ -12,6 +12,7 @@ override_dh_auto_install:
 	# Install BT command files
 	install -d debian/biostool/usr/share/biostool
 	cp -r ../../*.py debian/biostool/usr/share/biostool/
+	cp -r ../../*.sh debian/biostool/usr/share/biostool/
 	cp -r ../../*.txt debian/biostool/usr/share/biostool/
 	cp -r ../../attach debian/biostool/usr/share/biostool/
 	cp -r ../../build debian/biostool/usr/share/biostool/
@@ -29,11 +30,9 @@ override_dh_auto_install:
 	cp -r ../../status debian/biostool/usr/share/biostool/
 	cp -r ../../switch debian/biostool/usr/share/biostool/
 	cp -r ../../top debian/biostool/usr/share/biostool/
-	# Install executable wrapper
+	# Install executable wrapper (symlink to bt.sh)
 	install -d debian/biostool/usr/bin
-	echo '#!/bin/sh' > debian/biostool/usr/bin/bt
-	echo 'exec python3 /usr/share/biostool/bt.py "$$@"' >> debian/biostool/usr/bin/bt
-	chmod 755 debian/biostool/usr/bin/bt
+	ln -sf /usr/share/biostool/bt.sh debian/biostool/usr/bin/bt
 	# Install documentation
 	install -d debian/biostool/usr/share/doc/biostool
 	cp ../../README.md debian/biostool/usr/share/doc/biostool/

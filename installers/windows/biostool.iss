@@ -2,7 +2,7 @@
 ; Requires Inno Setup 6.0 or later: https://jrsoftware.org/isinfo.php
 
 #define MyAppName "HPE Server BIOS Tool"
-#define MyAppVersion "0.7.0"
+#define MyAppVersion "0.9.0"
 #define MyAppPublisher "HPE"
 #define MyAppURL "https://github.com/LowellDennis/bt"
 #define MyAppExeName "bt.cmd"
@@ -50,6 +50,7 @@ Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "A
 Source: "..\..\*.py"; DestDir: "{app}"; Components: core; Flags: ignoreversion
 Source: "..\..\*.cmd"; DestDir: "{app}"; Components: core; Flags: ignoreversion
 Source: "..\..\*.ps1"; DestDir: "{app}"; Components: core; Flags: ignoreversion
+Source: "..\..\*.sh"; DestDir: "{app}"; Components: core; Flags: ignoreversion
 Source: "..\..\*.txt"; DestDir: "{app}"; Components: core; Flags: ignoreversion
 Source: "..\..\README.md"; DestDir: "{app}"; Components: core; Flags: ignoreversion
 Source: "..\..\attach\*"; DestDir: "{app}\attach"; Components: core; Flags: ignoreversion recursesubdirs

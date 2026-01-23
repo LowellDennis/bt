@@ -1,3 +1,12 @@
+biostool (0.9.0-1) unstable; urgency=medium
+
+  * New upstream release 0.9.0
+  * Fixed NoFilter outputting "None" during clean command timeouts
+  * Added bt.sh for native Linux/macOS shell support
+  * Added Linux/macOS support to post-command script generation
+
+ -- Lowell Dennis <lowell.dennis@hpe.com>  Thu, 23 Jan 2026 12:00:00 +0000
+
 biostool (0.7.0-1) unstable; urgency=medium
 
   * New upstream release 0.7.0
