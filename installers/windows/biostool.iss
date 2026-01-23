@@ -18,11 +18,11 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\HPE\BIOSTool
 DefaultGroupName=HPE Server BIOS Tool
 AllowNoIcons=yes
-LicenseFile=..\..\LICENSE
+; LicenseFile=..\..\LICENSE
 InfoBeforeFile=..\..\README.md
 OutputDir=.\output
 OutputBaseFilename=BIOSTool-{#MyAppVersion}-Setup
-SetupIconFile=..\..\BiosTool.ico
+; SetupIconFile=..\..\.gui\biostool.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -70,8 +70,8 @@ Source: "..\..\status\*"; DestDir: "{app}\status"; Components: core; Flags: igno
 Source: "..\..\switch\*"; DestDir: "{app}\switch"; Components: core; Flags: ignoreversion recursesubdirs
 Source: "..\..\top\*"; DestDir: "{app}\top"; Components: core; Flags: ignoreversion recursesubdirs
 
-; VS Code Extension
-Source: "..\..\vscode-extension\*.vsix"; DestDir: "{tmp}"; Components: vscode; Flags: ignoreversion deleteafterinstall
+; VS Code Extension (optional - only included if .vsix exists)
+Source: "..\..\.vscode-extension\*.vsix"; DestDir: "{tmp}"; Components: vscode; Flags: ignoreversion deleteafterinstall skipifsourcedoesntexist
 
 [Icons]
 Name: "{group}\{#MyAppName} Documentation"; Filename: "{app}\README.md"
@@ -158,27 +158,26 @@ procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
   EnvPath: String;
-  VSIXFiles: TArrayOfString;
-  I: Integer;
+  FindRec: TFindRec;
 begin
   if CurStep = ssPostInstall then
   begin
     // Install VS Code extension if selected and VS Code is installed
     if WizardIsComponentSelected('vscode') and VSCodeInstalled then
     begin
-      if FindFirst(ExpandConstant('{tmp}\*.vsix'), VSIXFiles) then
+      if FindFirst(ExpandConstant('{tmp}\*.vsix'), FindRec) then
       begin
         try
-          for I := 0 to GetArrayLength(VSIXFiles) - 1 do
-          begin
-            Exec(VSCodePath, '--install-extension "' + ExpandConstant('{tmp}\') + VSIXFiles[I] + '"', 
+          repeat
+            Exec(VSCodePath, '--install-extension "' + ExpandConstant('{tmp}\') + FindRec.Name + '"', 
                  '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
             if ResultCode = 0 then
-              Log('Successfully installed VS Code extension: ' + VSIXFiles[I])
+              Log('Successfully installed VS Code extension: ' + FindRec.Name)
             else
-              Log('Failed to install VS Code extension: ' + VSIXFiles[I] + ' (code: ' + IntToStr(ResultCode) + ')');
-          end;
+              Log('Failed to install VS Code extension: ' + FindRec.Name + ' (code: ' + IntToStr(ResultCode) + ')');
+          until not FindNext(FindRec);
         finally
+          FindClose(FindRec);
         end;
       end;
     end;
