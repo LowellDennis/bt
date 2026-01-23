@@ -169,6 +169,11 @@ The main program is 'bt.cmd'
 ### Version History ###
 | Version | Explanation                                                                            |
 |---------|----------------------------------------------------------------------------------------|
+| V0.9	  | Bug fix release                                                                        |
+|         | - Fixed NoFilter outputting "None" repeatedly during clean command timeouts            |
+|---------|----------------------------------------------------------------------------------------|
+| V0.8	  | GUI improvements                                                                       |
+|---------|----------------------------------------------------------------------------------------|
 | V0.7	  | Professional installers for Windows and Linux                                          |
 |         | - Added Inno Setup installer for Windows with VS Code extension auto-install           |
 |         | - Added Debian package for Linux distributions                                         |
