@@ -3,7 +3,7 @@
 ### What is this repository for? ###
 
 * A tool for working with HPE Server BIOS source code.
-* Current Version is V0.8
+* Current Version is V0.9
 
 ### How do I get set up? ###
 

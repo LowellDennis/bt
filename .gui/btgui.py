@@ -8,16 +8,16 @@ import sys
 import os
 import subprocess
 import glob
+import re
 from datetime import datetime
-from pathlib import Path
 
 try:
     from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                                 QHBoxLayout, QTreeWidget, QTreeWidgetItem, QPushButton,
-                                 QTextEdit, QProgressBar, QLabel, QComboBox, QSplitter,
-                                 QGroupBox, QStatusBar, QTabWidget, QMessageBox, QSizePolicy)
-    from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QProcess
-    from PyQt6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor, QKeyEvent
+                                 QHBoxLayout, QPushButton, QTextEdit, QLabel,
+                                 QGroupBox, QStatusBar, QTabWidget, QMessageBox, 
+                                 QInputDialog, QFileDialog, QProgressBar)
+    from PyQt6.QtCore import Qt, QTimer, QProcess
+    from PyQt6.QtGui import QFont, QTextCursor, QKeyEvent, QTextCharFormat, QColor
 except ImportError as e:
     print(f"Required package not found: {e}")
     print("Install with: pip install PyQt6")
@@ -53,13 +53,25 @@ class InteractiveConsole(QTextEdit):
         self.shell_process = QProcess(self)
         self.shell_process.setWorkingDirectory(self.working_directory)
         self.shell_process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+        
+        # Set environment to force Python unbuffered output
+        env = QProcess.systemEnvironment()
+        from PyQt6.QtCore import QProcessEnvironment
+        proc_env = QProcessEnvironment()
+        for item in env:
+            if '=' in item:
+                key, value = item.split('=', 1)
+                proc_env.insert(key, value)
+        proc_env.insert('PYTHONUNBUFFERED', '1')
+        self.shell_process.setProcessEnvironment(proc_env)
+        
+        # Only connect stdout since we use MergedChannels (stderr goes to stdout)
         self.shell_process.readyReadStandardOutput.connect(self._handle_shell_output)
-        self.shell_process.readyReadStandardError.connect(self._handle_shell_output)
         self.shell_process.finished.connect(self._handle_command_finished)
         
         # Start shell and inherit environment PROMPT
         if sys.platform == 'win32':
-            self.shell_process.start('cmd.exe')
+            self.shell_process.start('cmd.exe', ['/Q'])  # /Q turns off command echo
         else:
             self.shell_process.start('bash', ['-i'])
         
@@ -82,9 +94,9 @@ class InteractiveConsole(QTextEdit):
     
     def _handle_shell_output(self):
         """Handle output from the shell process"""
+        # Note: MergedChannels mode combines stderr into stdout
         output = self.shell_process.readAllStandardOutput().data().decode('utf-8', errors='replace')
         if output:
-            # Just display all output from the shell
             cursor = self.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
             cursor.insertText(output)
@@ -105,8 +117,27 @@ class InteractiveConsole(QTextEdit):
     
     def keyPressEvent(self, event: QKeyEvent):
         """Handle key presses for command input"""
-        # Ignore all input if disabled
+        # Always allow copy (Ctrl+C) regardless of input state
+        if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            self.copy()
+            return
+        
+        # Always allow select all (Ctrl+A)
+        if event.key() == Qt.Key.Key_A and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            self.selectAll()
+            return
+        
+        # Ignore all other input if disabled
         if not self.input_enabled:
+            return
+        
+        # Allow paste (Ctrl+V) when input is enabled
+        if event.key() == Qt.Key.Key_V and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            # Paste at end of document
+            cursor = self.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            self.setTextCursor(cursor)
+            self.paste()
             return
         
         cursor = self.textCursor()
@@ -206,12 +237,12 @@ class InteractiveConsole(QTextEdit):
             self.command_history.append(command)
         self.history_index = -1
         
-        # Clear the typed command from the screen (shell will echo it back)
+        # Move cursor to end and add newline (keep the typed command visible since /Q disables echo)
         cursor = self.textCursor()
-        cursor.setPosition(self.prompt_position)
-        cursor.movePosition(QTextCursor.MoveOperation.End, QTextCursor.MoveMode.KeepAnchor)
-        cursor.removeSelectedText()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.insertText('\n')
         self.setTextCursor(cursor)
+        self.prompt_position = cursor.position()
         
         # Send command to shell (even if empty, to get a new prompt)
         self.awaiting_output = True
@@ -345,6 +376,8 @@ class InteractiveConsole(QTextEdit):
     
     def write_output(self, text):
         """Write output to console (for compatibility with existing code)"""
+        if text is None:
+            return
         cursor = self.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
         cursor.insertText(text)
@@ -355,18 +388,25 @@ class InteractiveConsole(QTextEdit):
     
     def append(self, text):
         """Override append to update prompt position"""
+        if text is None:
+            return
         super().append(text)
         self.prompt_position = self.textCursor().position()
         self.ensureCursorVisible()
     
     def insertPlainText(self, text):
         """Override insertPlainText to update prompt position"""
+        if text is None:
+            return
         super().insertPlainText(text)
         self.prompt_position = self.textCursor().position()
         self.ensureCursorVisible()
     
     def set_working_directory(self, directory):
         """Change the working directory of the shell"""
+        # Only change directory if it's different from current
+        if directory == self.working_directory:
+            return
         self.working_directory = directory
         if sys.platform == 'win32':
             self.shell_process.write(f'cd /d "{directory}"\n'.encode('utf-8'))
@@ -378,13 +418,14 @@ class InteractiveConsole(QTextEdit):
         if not command:
             return
         
-        # Display the command in the console
+        # Display the command in the console with newline
         cursor = self.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
-        cursor.insertText(command)
+        cursor.insertText(command + '\n')
         self.setTextCursor(cursor)
+        self.ensureCursorVisible()
         
-        # Execute it
+        # Add to history
         if command and (not self.command_history or self.command_history[-1] != command):
             self.command_history.append(command)
         self.history_index = -1
@@ -645,89 +686,6 @@ class WorkspaceDiscovery:
         return settings
 
 
-class BuildThread(QThread):
-    """Background thread for running builds"""
-    output_ready = pyqtSignal(str)
-    progress_update = pyqtSignal(int, int, int)  # current, total, percentage
-    build_finished = pyqtSignal(bool)  # success
-    
-    def __init__(self, workspace, platform, build_type):
-        super().__init__()
-        self.workspace = workspace
-        self.platform = platform
-        self.build_type = build_type
-        self.process = None
-        self.line_count = 0
-        self.estimated_total_lines = 1000  # Default estimate
-        
-    def run(self):
-        """Run the build command"""
-        try:
-            # Change to workspace directory
-            os.chdir(self.workspace)
-            
-            # Build command
-            bt_cmd = os.path.join(os.path.dirname(__file__), 'bt.ps1')
-            cmd = ['powershell', '-ExecutionPolicy', 'Bypass', '-File', bt_cmd, 
-                   'build', self.platform, self.build_type]
-            
-            self.process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                bufsize=1,
-                universal_newlines=False
-            )
-            
-            # Read output line by line
-            for line in iter(self.process.stdout.readline, b''):
-                if line:
-                    line_str = line.decode('utf-8', errors='ignore')
-                    self.output_ready.emit(line_str)
-                    
-                    # Track progress by line count
-                    self.line_count += 1
-                    
-                    # Check if there's an explicit progress indicator in the output
-                    if b'/' in line and (b'%' in line or b'lines' in line.lower()):
-                        try:
-                            # Try to parse explicit progress: "(123/456)" or "123/456"
-                            import re
-                            match = re.search(r'\((\d+)/(\d+)\)', line_str)
-                            if not match:
-                                match = re.search(r'(\d+)/(\d+)', line_str)
-                            if match:
-                                current = int(match.group(1))
-                                total = int(match.group(2))
-                                pct = int((current / total) * 100) if total > 0 else 0
-                                self.estimated_total_lines = total
-                                self.progress_update.emit(current, total, pct)
-                            else:
-                                # Use line count as progress
-                                pct = min(int((self.line_count / self.estimated_total_lines) * 100), 99)
-                                self.progress_update.emit(self.line_count, self.estimated_total_lines, pct)
-                        except:
-                            # Fallback to line count
-                            pct = min(int((self.line_count / self.estimated_total_lines) * 100), 99)
-                            self.progress_update.emit(self.line_count, self.estimated_total_lines, pct)
-                    elif self.line_count % 10 == 0:  # Update every 10 lines
-                        pct = min(int((self.line_count / self.estimated_total_lines) * 100), 99)
-                        self.progress_update.emit(self.line_count, self.estimated_total_lines, pct)
-            
-            self.process.wait()
-            success = self.process.returncode == 0
-            self.build_finished.emit(success)
-            
-        except Exception as e:
-            self.output_ready.emit(f"\n*** ERROR ***: {str(e)}\n")
-            self.build_finished.emit(False)
-    
-    def stop(self):
-        """Stop the build process"""
-        if self.process:
-            self.process.terminate()
-
-
 class WorkspaceTab(QWidget):
     """Individual tab for a workspace/repository"""
     
@@ -735,19 +693,24 @@ class WorkspaceTab(QWidget):
         super().__init__(parent)
         self.workspace_path = workspace_path
         self.discovery = discovery
-        self.build_thread = None
+        self.build_process = None  # QProcess for build command (for stopping)
         self.local_settings = {}
-        self.command_buffer = ""
         
         self.init_ui()
         self.load_local_settings()
-        self.start_cmd_session()
     
     def closeEvent(self, event):
         """Clean up when tab is closed"""
-        if hasattr(self, 'cmd_process'):
+        # Kill build process if running
+        if self.build_process:
             try:
-                self.cmd_process.kill()
+                self.build_process.kill()
+            except:
+                pass
+        # Kill shell process in console
+        if hasattr(self, 'cmd_output') and hasattr(self.cmd_output, 'shell_process'):
+            try:
+                self.cmd_output.shell_process.kill()
             except:
                 pass
         event.accept()
@@ -757,6 +720,52 @@ class WorkspaceTab(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 0)
         layout.setSpacing(3)
+        
+        # Progress bar for builds (hidden by default)
+        self.progress_container = QWidget()
+        progress_layout = QHBoxLayout(self.progress_container)
+        progress_layout.setContentsMargins(0, 0, 0, 0)
+        progress_layout.setSpacing(8)
+        
+        # Elapsed time label
+        self.elapsed_label = QLabel('Time:00:00')
+        self.elapsed_label.setStyleSheet('QLabel { font-family: Consolas; color: #0078d4; }')
+        progress_layout.addWidget(self.elapsed_label)
+        
+        # INF files label
+        self.inf_label = QLabel('INFs:0')
+        self.inf_label.setStyleSheet('QLabel { color: #666666; }')
+        self.inf_label.setMinimumWidth(70)
+        progress_layout.addWidget(self.inf_label)
+        
+        # Error count label
+        self.error_label = QLabel('Errors:0')
+        self.error_label.setStyleSheet('QLabel { color: #666666; }')
+        self.error_label.setMinimumWidth(70)
+        progress_layout.addWidget(self.error_label)
+        
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setFormat('%v/%m (%p%)')
+        self.progress_bar.setStyleSheet('''
+            QProgressBar {
+                border: 1px solid #999999;
+                border-radius: 3px;
+                text-align: center;
+                height: 20px;
+            }
+            QProgressBar::chunk {
+                background-color: #0078d4;
+                border-radius: 2px;
+            }
+        ''')
+        progress_layout.addWidget(self.progress_bar, stretch=1)
+        
+        self.progress_container.setVisible(False)
+        layout.addWidget(self.progress_container)
         
         # Command/Output area - Terminal
         output_group = QGroupBox('Command & Output')
@@ -769,20 +778,12 @@ class WorkspaceTab(QWidget):
         output_group.setLayout(output_layout)
         layout.addWidget(output_group, stretch=1)
     
-    def start_cmd_session(self):
-        """Start an interactive CMD.exe session - not used with QTextEdit output"""
-        # QTextEdit is just for displaying output, no interactive session needed
-        pass
-    
     def load_local_settings(self):
         """Load local settings for this workspace"""
         self.local_settings = self.discovery.get_local_settings(self.workspace_path)
     
     def edit_email(self):
         """Edit the email setting with validation"""
-        from PyQt6.QtWidgets import QInputDialog, QMessageBox
-        import re
-        
         current = self.local_settings.get('email', '')
         text, ok = QInputDialog.getText(self, 'Edit Email', 'Enter email address:', text=current)
         
@@ -804,7 +805,6 @@ class WorkspaceTab(QWidget):
     
     def edit_bmc(self):
         """Edit the bmc setting"""
-        from PyQt6.QtWidgets import QInputDialog
         current = self.local_settings.get('bmc', '')
         text, ok = QInputDialog.getText(self, 'Edit BMC', 'Enter BMC setting:', text=current)
         if ok and text:
@@ -812,8 +812,6 @@ class WorkspaceTab(QWidget):
     
     def edit_name(self):
         """Edit the name setting by selecting from available platforms"""
-        from PyQt6.QtWidgets import QInputDialog
-        
         # Discover available platforms in this workspace
         platforms = self.discovery.discover_platforms(self.workspace_path)
         
@@ -958,67 +956,216 @@ class WorkspaceTab(QWidget):
             print(f"Error saving {setting_name}: {e}")
     
     def start_build(self, build_type='DEBUG'):
-        """Start a build"""
+        """Start a build using QProcess for proper process management"""
         platform_name = self.local_settings.get('name', '')
         if not platform_name:
-            self.output_text.append("\nError: No platform name set. Use 'name' button to set.\n")
+            self.cmd_output.append("\nError: No platform name set. Use 'name' button to set.\n")
             return False
         
-        # Clear output
-        self.output_text.clear()
-        self.output_text.append(f"=== Building {platform_name} ({build_type}) ===\n")
+        # Create QProcess for the build
+        self.build_process = QProcess(self)
+        self.build_process.setWorkingDirectory(self.workspace_path)
+        self.build_process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         
-        # Start build thread
-        self.build_thread = BuildThread(self.workspace_path, platform_name, build_type)
-        self.build_thread.output_ready.connect(self.append_output)
-        self.build_thread.progress_update.connect(self.update_progress)
-        self.build_thread.build_finished.connect(self.build_completed)
-        self.build_thread.start()
+        # Set environment to use UTF-8 encoding to avoid Unicode errors
+        env = self.build_process.processEnvironment()
+        if env.isEmpty():
+            env = QProcess.systemEnvironment()
+            from PyQt6.QtCore import QProcessEnvironment
+            proc_env = QProcessEnvironment()
+            for item in env:
+                if '=' in item:
+                    key, value = item.split('=', 1)
+                    proc_env.insert(key, value)
+            env = proc_env
+        env.insert('PYTHONIOENCODING', 'utf-8')
+        self.build_process.setProcessEnvironment(env)
+        
+        # Connect signals
+        self.build_process.readyReadStandardOutput.connect(self._handle_build_output)
+        self.build_process.readyReadStandardError.connect(self._handle_build_output)
+        self.build_process.finished.connect(self._handle_build_finished)
+        self.build_process.errorOccurred.connect(self._handle_build_error)
+        
+        # Build command: bt.cmd build
+        if sys.platform == 'win32':
+            bt_executable = 'bt.cmd'
+            bt_cmd = ['cmd.exe', '/c', bt_executable, 'build']
+        else:
+            bt_executable = 'bt.sh'
+            bt_cmd = [bt_executable, 'build']
+        
+        # Show the command on the command line (like user typed it)
+        self.cmd_output.insertPlainText(f"{bt_executable} build\n")
+        self.cmd_output.ensureCursorVisible()
+        
+        # Show and reset progress bar
+        self.progress_bar.setValue(0)
+        self.progress_bar.setMaximum(100)
+        self.progress_bar.setFormat('Starting...')
+        self.elapsed_label.setText('Time:00:00')
+        self.inf_label.setText('INFs:0')
+        self.error_label.setText('Errors:0')
+        self.error_label.setStyleSheet('QLabel { color: #666666; }')
+        self.progress_container.setVisible(True)
+        
+        # Disable input while building
+        self.cmd_output.set_input_enabled(False)
+        
+        # Start the process
+        self.build_process.start(bt_cmd[0], bt_cmd[1:])
+        
+        if not self.build_process.waitForStarted(3000):
+            self.cmd_output.append(f"ERROR: Failed to start build process\n")
+            self.cmd_output.append(f"Error: {self.build_process.errorString()}\n")
+            self.cmd_output.set_input_enabled(True)
+            self.build_process = None
+            return False
         
         return True
     
-    def stop_build(self):
-        """Stop the current build"""
-        if self.build_thread:
-            self.build_thread.stop()
-            self.output_text.append("\n*** Build stopped by user ***\n")
+    def _handle_build_output(self):
+        """Handle output from the build process"""
+        if self.build_process:
+            raw_output = self.build_process.readAllStandardOutput().data().decode('utf-8', errors='replace')
+            if raw_output:
+                # Strip ANSI escape codes first (colors, cursor movement, etc.)
+                output = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', raw_output)
+                output = re.sub(r'\x1b\][^\x07]*\x07', '', output)  # OSC sequences
+                output = re.sub(r'\x1b[PX^_][^\x1b]*\x1b\\', '', output)  # DCS, SOS, PM, APC sequences
+                output = re.sub(r'\x1b.', '', output)  # Any other escape sequences
+                
+                # Remove Unicode block elements (U+2580-U+259F) - they show as colored boxes
+                output = re.sub(r'[\u2580-\u259F]+', '', output)
+                
+                # Check for progress line pattern: "00:04, 0:27/35000 0%, Error 0"
+                # Format: elapsed_time, inf_count:lines_done/total_lines percent%, Error error_count
+                # This pattern may appear in a line with progress bar characters (block elements already stripped)
+                progress_line_match = re.search(r'(\d+:\d+),\s*(\d+):(\d+)/(\d+)\s+(\d+)%,?\s*Error\s+(\d+)', output, re.IGNORECASE)
+                
+                if progress_line_match:
+                    elapsed_time = progress_line_match.group(1)  # e.g., "00:04"
+                    inf_count = int(progress_line_match.group(2))  # e.g., 0
+                    lines_done = int(progress_line_match.group(3))  # e.g., 27
+                    total_lines = int(progress_line_match.group(4))  # e.g., 35000
+                    percent = int(progress_line_match.group(5))  # e.g., 0
+                    error_count = int(progress_line_match.group(6))  # e.g., 0
+                    
+                    # Update elapsed time label
+                    self.elapsed_label.setText(f'Time:{elapsed_time}')
+                    
+                    # Update INF files label
+                    self.inf_label.setText(f'INFs:{inf_count}')
+                    
+                    # Update error count label
+                    self.error_label.setText(f'Errors:{error_count}')
+                    if error_count > 0:
+                        self.error_label.setStyleSheet('QLabel { color: #d32f2f; font-weight: bold; }')
+                    else:
+                        self.error_label.setStyleSheet('QLabel { color: #666666; }')
+                    
+                    # Update progress bar with lines progress
+                    self.progress_bar.setMaximum(total_lines)
+                    self.progress_bar.setValue(lines_done)
+                    self.progress_bar.setFormat(f'Lines:{lines_done}/{total_lines} ({percent}%)')
+                    
+                    # Remove only the progress line from output (it's shown in progress bar)
+                    # Match: timestamp, inf:lines/total percent%, Error count (and any trailing spaces)
+                    output = re.sub(r'\r?\d+:\d+,\s*\d+:\d+/\d+\s+\d+%,?\s*Error\s+\d+\s*', '', output, flags=re.IGNORECASE)
+                
+                # Clean up empty lines from removed progress, but preserve lines with content
+                output = re.sub(r'^\s*\n', '', output)  # Remove leading empty lines
+                output = re.sub(r'\n\s*$', '\n', output)  # Clean trailing whitespace but keep newline
+                
+                # Handle carriage returns (\r) - used for progress updates on the same line
+                # Split by \r and process each segment
+                if '\r' in output:
+                    segments = output.split('\r')
+                    for i, segment in enumerate(segments):
+                        if i > 0 and segment and not segment.startswith('\n'):
+                            # This segment follows a \r, so clear from start of line
+                            cursor = self.cmd_output.textCursor()
+                            cursor.movePosition(QTextCursor.MoveOperation.End)
+                            cursor.movePosition(QTextCursor.MoveOperation.StartOfLine, QTextCursor.MoveMode.KeepAnchor)
+                            cursor.removeSelectedText()
+                            self.cmd_output.setTextCursor(cursor)
+                        if segment:
+                            self.cmd_output.insertPlainText(segment)
+                elif output.strip():  # Only insert if there's non-whitespace content
+                    self.cmd_output.insertPlainText(output)
+                    
+                if output.strip():
+                    self.cmd_output.ensureCursorVisible()
     
-    def append_output(self, text):
-        """Append text to build output"""
-        if 'ERROR' in text:
-            self.output_text.setTextColor(QColor('#ff6b6b'))
-        elif 'WARNING' in text:
-            self.output_text.setTextColor(QColor('#ffd93d'))
-        else:
-            self.output_text.setTextColor(QColor('#d4d4d4'))
-        
-        self.output_text.insertPlainText(text)
-        self.output_text.setTextColor(QColor('#d4d4d4'))
-        
-        # Auto-scroll to bottom
-        cursor = self.output_text.textCursor()
-        cursor.movePosition(QTextCursor.MoveOperation.End)
-        self.output_text.setTextCursor(cursor)
-    
-    def update_progress(self, current, total, percentage):
-        """Update progress - progress bar was removed"""
-        pass
-    
-    def build_completed(self, success):
-        """Handle build completion"""
+    def _handle_build_finished(self, exit_code, exit_status):
+        """Handle build process completion"""
         platform_name = self.local_settings.get('name', 'Unknown')
+        success = exit_code == 0
+        
+        # Hide progress bar
+        self.progress_container.setVisible(False)
+        
+        # Re-enable input
+        self.cmd_output.set_input_enabled(True)
+        
+        # Clear the process reference
+        self.build_process = None
+        
+        # Notify parent to update buttons and clear building_tab
+        main_window = self.window()
+        if isinstance(main_window, BTGui):
+            main_window.building_tab = None
+            main_window.update_button_states()
+        
+        # Show message box
         if success:
-            self.output_text.append("\n=== Build completed successfully ===\n")
             QMessageBox.information(self, 'Build Complete', 
                                    f'{platform_name} built successfully!')
         else:
-            self.output_text.append("\n=== Build failed ===\n")
             QMessageBox.warning(self, 'Build Failed', 
-                               f'{platform_name} build failed. Check output for errors.')
-        
-        # Notify parent to update buttons
-        if hasattr(self.parent(), 'parent') and hasattr(self.parent().parent(), 'update_button_states'):
-            self.parent().parent().update_button_states()
+                               f'{platform_name} build failed (exit code: {exit_code}).')
+    
+    def _handle_build_error(self, error):
+        """Handle build process errors"""
+        if self.build_process:
+            self.cmd_output.append(f"\nProcess error: {self.build_process.errorString()}\n")
+            self.cmd_output.ensureCursorVisible()
+    
+    def stop_build(self):
+        """Stop the current build by killing the process"""
+        if self.build_process and self.build_process.state() != QProcess.ProcessState.NotRunning:
+            self.cmd_output.append("\n*** Stopping build... ***\n")
+            self.cmd_output.ensureCursorVisible()
+            
+            # Kill the process (terminate may not work on Windows for cmd.exe subprocesses)
+            self.build_process.kill()
+            
+            # Wait for it to finish
+            if not self.build_process.waitForFinished(5000):
+                self.cmd_output.append("*** Warning: Process did not terminate cleanly ***\n")
+            
+            self.cmd_output.append("*** Build stopped by user ***\n")
+            self.cmd_output.ensureCursorVisible()
+            
+            # Hide progress bar
+            self.progress_container.setVisible(False)
+            
+            # Re-enable input
+            self.cmd_output.set_input_enabled(True)
+            
+            # Clear the process reference
+            self.build_process = None
+            
+            # Trigger a new prompt
+            self.cmd_output.shell_process.write(b'\n')
+            
+            # Notify parent to update buttons and clear building_tab
+            main_window = self.window()
+            if isinstance(main_window, BTGui):
+                main_window.building_tab = None
+                main_window.update_button_states()
+    
+
     
     def has_platform_selected(self):
         """Check if a platform is selected"""
@@ -1026,7 +1173,7 @@ class WorkspaceTab(QWidget):
     
     def is_building(self):
         """Check if currently building"""
-        return self.build_thread is not None and self.build_thread.isRunning()
+        return self.build_process is not None and self.build_process.state() != QProcess.ProcessState.NotRunning
 
 
 class BTGui(QMainWindow):
@@ -1037,6 +1184,7 @@ class BTGui(QMainWindow):
         self.bt_path = os.path.dirname(os.path.abspath(__file__))
         self.discovery = WorkspaceDiscovery(self.bt_path)
         self.workspace_tabs = {}
+        self.building_tab = None  # Track which tab has an active build (only one at a time due to U: drive mapping)
         
         self.init_ui()
         self.discover_workspaces()
@@ -1073,112 +1221,111 @@ class BTGui(QMainWindow):
         
         main_layout.addWidget(self.tab_widget, stretch=1)
         
-        # Status bar with global email and local workspace settings (double height with stacked layout)
+        # Status bar with global email and local workspace settings (two-line: label above, value in badge)
         self.status_bar = QStatusBar()
-        self.status_bar.setMinimumHeight(50)
+        self.status_bar.setMinimumHeight(45)
+        self.status_bar.setContentsMargins(0, 0, 0, 0)
+        self.status_bar.setStyleSheet('QStatusBar { padding: 0px; } QStatusBar::item { border: none; }')
         self.setStatusBar(self.status_bar)
         
-        # Helper function to create stacked label/value widget
-        def create_stacked_widget(label_text, is_button=False, checkable=False):
-            widget = QWidget()
-            layout = QVBoxLayout(widget)
-            layout.setContentsMargins(4, 2, 4, 2)
-            layout.setSpacing(0)
+        # Helper to create a stacked widget with label above and value badge below
+        def create_stacked_setting(label_text, is_button=False, checkable=False):
+            container = QWidget()
+            layout = QVBoxLayout(container)
+            layout.setContentsMargins(2, 2, 2, 2)
+            layout.setSpacing(1)
             
-            # Label on top (smaller, gray)
+            # Label on top (outside badge)
             label = QLabel(label_text)
-            label.setStyleSheet('QLabel { color: #666666; font-size: 9px; font-weight: bold; }')
+            label.setStyleSheet('QLabel { color: #666666; font-size: 8px; font-weight: bold; background: transparent; border: none; }')
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(label)
             
-            # Value below
+            # Value badge below
             if is_button:
-                value = QPushButton('-')
+                value_widget = QPushButton('-')
                 if checkable:
-                    value.setCheckable(True)
-                    value.setStyleSheet('''
-                        QPushButton { background-color: #555555; color: #ffffff; padding: 2px 8px; border-radius: 3px; font-size: 10px; }
+                    value_widget.setCheckable(True)
+                    value_widget.setStyleSheet('''
+                        QPushButton { background-color: #555555; color: #ffffff; padding: 2px 6px; border-radius: 3px; font-size: 9px; }
                         QPushButton:checked { background-color: #00aa00; }
                     ''')
                 else:
-                    value.setStyleSheet('''
-                        QPushButton { background-color: #2d2d2d; color: #ffffff; padding: 2px 8px; border-radius: 3px; font-size: 10px; }
+                    value_widget.setStyleSheet('''
+                        QPushButton { background-color: #2d2d2d; color: #ffffff; padding: 2px 6px; border-radius: 3px; font-size: 9px; }
                         QPushButton:hover { background-color: #3d3d3d; }
                     ''')
             else:
-                value = QLabel('-')
-                value.setStyleSheet('''
+                value_widget = QLabel('-')
+                value_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                value_widget.setStyleSheet('''
                     QLabel {
                         background-color: #e8e8e8;
                         color: #333333;
                         border: 1px solid #999999;
                         border-radius: 3px;
-                        padding: 2px 8px;
-                        font-size: 10px;
+                        padding: 2px 6px;
+                        font-size: 9px;
                     }
                 ''')
-                value.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            
-            layout.addWidget(value)
-            return widget, value
+            layout.addWidget(value_widget)
+            return container, value_widget
         
         # Create a container widget for left-aligned items
         left_container = QWidget()
         left_layout = QHBoxLayout(left_container)
         left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(6)
+        left_layout.setSpacing(4)
         
-        # Email setting (global, left-most)
-        email_widget, self.email_setting_btn = create_stacked_widget('Email', is_button=True)
+        # email setting (global, left-most)
+        email_container, self.email_setting_btn = create_stacked_setting('email', is_button=True)
         self.email_setting_btn.clicked.connect(self.edit_email_setting)
-        left_layout.addWidget(email_widget)
+        left_layout.addWidget(email_container)
         
-        # Separator
-        left_layout.addSpacing(8)
+        left_layout.addSpacing(6)
         
         # Toggle settings (local/per-workspace)
-        alert_widget, self.status_alert_btn = create_stacked_widget('alert', is_button=True, checkable=True)
+        alert_container, self.status_alert_btn = create_stacked_setting('alert', is_button=True, checkable=True)
         self.status_alert_btn.clicked.connect(lambda: self._toggle_local_setting('alert'))
-        left_layout.addWidget(alert_widget)
+        left_layout.addWidget(alert_container)
         
-        itp_widget, self.status_itp_btn = create_stacked_widget('itp', is_button=True, checkable=True)
+        itp_container, self.status_itp_btn = create_stacked_setting('itp', is_button=True, checkable=True)
         self.status_itp_btn.clicked.connect(lambda: self._toggle_local_setting('itp'))
-        left_layout.addWidget(itp_widget)
+        left_layout.addWidget(itp_container)
         
-        release_widget, self.status_release_btn = create_stacked_widget('release', is_button=True, checkable=True)
+        release_container, self.status_release_btn = create_stacked_setting('release', is_button=True, checkable=True)
         self.status_release_btn.clicked.connect(lambda: self._toggle_local_setting('release'))
-        left_layout.addWidget(release_widget)
+        left_layout.addWidget(release_container)
         
-        warnings_widget, self.status_warnings_btn = create_stacked_widget('warnings', is_button=True, checkable=True)
+        warnings_container, self.status_warnings_btn = create_stacked_setting('warnings', is_button=True, checkable=True)
         self.status_warnings_btn.clicked.connect(lambda: self._toggle_local_setting('warnings'))
-        left_layout.addWidget(warnings_widget)
+        left_layout.addWidget(warnings_container)
         
-        # Separator
-        left_layout.addSpacing(8)
+        left_layout.addSpacing(6)
         
         # Editable local settings
-        bmc_widget, self.status_bmc_btn = create_stacked_widget('bmc', is_button=True)
+        bmc_container, self.status_bmc_btn = create_stacked_setting('bmc', is_button=True)
         self.status_bmc_btn.clicked.connect(lambda: self._edit_local_setting('bmc'))
-        left_layout.addWidget(bmc_widget)
+        left_layout.addWidget(bmc_container)
         
-        name_widget, self.status_name_btn = create_stacked_widget('name', is_button=True)
+        name_container, self.status_name_btn = create_stacked_setting('name', is_button=True)
         self.status_name_btn.clicked.connect(lambda: self._edit_local_setting('name'))
-        left_layout.addWidget(name_widget)
+        left_layout.addWidget(name_container)
         
         self.status_bar.addWidget(left_container)
         
         # Read-only settings (pushed to the right edge)
-        branch_widget, self.status_branch_label = create_stacked_widget('branch', is_button=False)
-        self.status_bar.addPermanentWidget(branch_widget)
+        branch_container, self.status_branch_label = create_stacked_setting('branch', is_button=False)
+        self.status_bar.addPermanentWidget(branch_container)
         
-        cpu_widget, self.status_cpu_label = create_stacked_widget('cpu', is_button=False)
-        self.status_bar.addPermanentWidget(cpu_widget)
+        cpu_container, self.status_cpu_label = create_stacked_setting('cpu', is_button=False)
+        self.status_bar.addPermanentWidget(cpu_container)
         
-        platform_widget, self.status_platform_label = create_stacked_widget('platform', is_button=False)
-        self.status_bar.addPermanentWidget(platform_widget)
+        platform_container, self.status_platform_label = create_stacked_setting('platform', is_button=False)
+        self.status_bar.addPermanentWidget(platform_container)
         
-        vendor_widget, self.status_vendor_label = create_stacked_widget('vendor', is_button=False)
-        self.status_bar.addPermanentWidget(vendor_widget)
+        vendor_container, self.status_vendor_label = create_stacked_setting('vendor', is_button=False)
+        self.status_bar.addPermanentWidget(vendor_container)
         
         # Load and display current email
         self._load_email_setting()
@@ -1377,10 +1524,19 @@ class BTGui(QMainWindow):
         worktree_ops_group.setLayout(worktree_ops_layout)
         layout.addWidget(worktree_ops_group)
         
-        # Refresh button
-        refresh_btn = QPushButton('⟳ Refresh')
+        # Refresh group
+        refresh_group = QGroupBox('')
+        refresh_group.setStyleSheet('QGroupBox { font-weight: bold; color: #000000; }')
+        refresh_layout = QHBoxLayout()
+        refresh_layout.setContentsMargins(5, 5, 5, 5)
+        refresh_layout.setSpacing(5)
+        
+        refresh_btn = QPushButton('🔄 Refresh')
         refresh_btn.clicked.connect(self.discover_workspaces)
-        layout.addWidget(refresh_btn)
+        refresh_layout.addWidget(refresh_btn)
+        
+        refresh_group.setLayout(refresh_layout)
+        layout.addWidget(refresh_group)
         
         return layout
     
@@ -1442,13 +1598,10 @@ class BTGui(QMainWindow):
                     email = f.read().strip() or '-'
             except Exception:
                 pass
-        self.email_setting_btn.setText(f'Email: {email}')
+        self.email_setting_btn.setText(email)
     
     def edit_email_setting(self):
         """Edit the email setting with validation"""
-        from PyQt6.QtWidgets import QInputDialog
-        import re
-        
         # Get current value from ~/.bt/email
         email_file = os.path.join(self.discovery.cache_dir, 'email')
         current = ''
@@ -1595,14 +1748,6 @@ class BTGui(QMainWindow):
         """Handle tab change"""
         self.update_button_states()
         self._update_status_bar_from_tab()
-        
-        if index >= 0:
-            tab = self.tab_widget.widget(index)
-            workspace_path = list(self.workspace_tabs.keys())[index] if index < len(self.workspace_tabs) else None
-            if workspace_path:
-                # Update console working directory when switching tabs
-                if isinstance(tab, WorkspaceTab) and hasattr(tab, 'cmd_output'):
-                    tab.cmd_output.set_working_directory(workspace_path)
     
     def _update_status_bar_from_tab(self):
         """Update status bar settings from current workspace tab"""
@@ -1611,7 +1756,7 @@ class BTGui(QMainWindow):
         if current_tab and isinstance(current_tab, WorkspaceTab):
             settings = current_tab.local_settings
             
-            # Update toggle buttons (values are 'on', 'off', or None)
+            # Update toggle buttons (values are 'on', 'off', or None) - just the value, label is above
             alert_val = settings.get('alert') or 'off'
             self.status_alert_btn.setText(alert_val)
             self.status_alert_btn.setChecked(alert_val == 'on')
@@ -1628,11 +1773,11 @@ class BTGui(QMainWindow):
             self.status_warnings_btn.setText(warnings_val)
             self.status_warnings_btn.setChecked(warnings_val == 'on')
             
-            # Update editable settings
+            # Update editable settings - just the value
             self.status_bmc_btn.setText(settings.get('bmc') or '-')
             self.status_name_btn.setText(settings.get('name') or '-')
             
-            # Update read-only settings
+            # Update read-only settings - just the value
             self.status_branch_label.setText(settings.get('branch') or '-')
             self.status_cpu_label.setText(settings.get('cpu') or '-')
             self.status_platform_label.setText(settings.get('platform') or '-')
@@ -1682,28 +1827,33 @@ class BTGui(QMainWindow):
         """Update button enabled/disabled states based on current tab"""
         current_tab = self.get_current_tab()
         
+        # Check if any build is running globally (only one build allowed at a time due to U: drive mapping)
+        any_build_running = self.building_tab is not None and self.building_tab.is_building()
+        
         if current_tab and isinstance(current_tab, WorkspaceTab):
             has_platform = current_tab.has_platform_selected()
-            is_building = current_tab.is_building()
+            is_current_tab_building = current_tab == self.building_tab and current_tab.is_building()
             is_main_repo = self.is_main_repo(current_tab.workspace_path)
             is_worktree = self.is_worktree(current_tab.workspace_path)
             is_git_repo = os.path.isdir(os.path.join(current_tab.workspace_path, '.git'))
             
-            self.build_btn.setEnabled(has_platform and not is_building)
-            self.stop_btn.setEnabled(is_building)
-            self.clean_btn.setEnabled(has_platform and not is_building)
+            # Build is disabled if any tab is building (global lock due to U: drive)
+            self.build_btn.setEnabled(has_platform and not any_build_running)
+            # Stop is only enabled if the current tab is the one building
+            self.stop_btn.setEnabled(is_current_tab_building)
+            self.clean_btn.setEnabled(has_platform and not any_build_running)
             self.delete_repo_btn.setEnabled(is_main_repo)
-            self.create_worktree_btn.setEnabled(is_main_repo and is_git_repo and not is_building)
-            self.destroy_worktree_btn.setEnabled(is_worktree and not is_building)
+            self.create_worktree_btn.setEnabled(is_main_repo and is_git_repo and not any_build_running)
+            self.destroy_worktree_btn.setEnabled(is_worktree and not any_build_running)
             
-            # BT Commands - enabled for both repos and worktrees (not during build)
-            self.status_btn.setEnabled(not is_building)
-            self.pull_btn.setEnabled(not is_building)
-            self.push_btn.setEnabled(not is_building)
-            self.merge_btn.setEnabled(not is_building)
-            self.top_btn.setEnabled(not is_building)
+            # BT Commands - enabled for both repos and worktrees (not during any build)
+            self.status_btn.setEnabled(not any_build_running)
+            self.pull_btn.setEnabled(not any_build_running)
+            self.push_btn.setEnabled(not any_build_running)
+            self.merge_btn.setEnabled(not any_build_running)
+            self.top_btn.setEnabled(not any_build_running)
             # Move is only for worktrees
-            self.move_btn.setEnabled(is_worktree and not is_building)
+            self.move_btn.setEnabled(is_worktree and not any_build_running)
         else:
             self.build_btn.setEnabled(False)
             self.stop_btn.setEnabled(False)
@@ -1722,8 +1872,26 @@ class BTGui(QMainWindow):
         """Handle build button click"""
         current_tab = self.get_current_tab()
         if current_tab and isinstance(current_tab, WorkspaceTab):
+            # Check if another build is already running (should be caught by button state, but double-check)
+            if self.building_tab is not None and self.building_tab.is_building():
+                QMessageBox.warning(
+                    self,
+                    'Build In Progress',
+                    'A build is already running in another tab.\n\n'
+                    'Only one build can run at a time because the build maps the U: drive.'
+                )
+                return
+            
+            # Set this tab as the building tab before starting
+            self.building_tab = current_tab
+            
             if current_tab.start_build():
-                self.status_bar.showMessage(f'Building {current_tab.current_platform["name"]}...')
+                platform_name = current_tab.local_settings.get('name', 'Unknown')
+                self.status_bar.showMessage(f'Building {platform_name}...')
+                self.update_button_states()
+            else:
+                # Build failed to start, clear the building_tab
+                self.building_tab = None
                 self.update_button_states()
     
     def on_stop_clicked(self):
@@ -1735,11 +1903,10 @@ class BTGui(QMainWindow):
             self.update_button_states()
     
     def on_clean_clicked(self):
-        """Handle clean button click"""
+        """Handle clean button click - runs bt clean"""
         current_tab = self.get_current_tab()
         if current_tab and isinstance(current_tab, WorkspaceTab):
-            # TODO: Implement clean functionality
-            QMessageBox.information(self, 'Clean', 'Clean functionality not yet implemented')
+            self._run_bt_command('clean')
             self.status_bar.showMessage('Clean requested')
     
     def is_main_repo(self, path):
@@ -1778,6 +1945,29 @@ class BTGui(QMainWindow):
         
         return False
     
+    def get_main_repo_for_worktree(self, worktree_path):
+        """Get the main repository path for a given worktree"""
+        worktree_path = os.path.normpath(os.path.abspath(worktree_path))
+        git_file = os.path.join(worktree_path, '.git')
+        
+        if not os.path.isfile(git_file):
+            return None
+        
+        try:
+            with open(git_file, 'r') as f:
+                content = f.read().strip()
+                # Content is like: gitdir: /path/to/main/.git/worktrees/name
+                if content.startswith('gitdir: '):
+                    gitdir = content[8:].strip()
+                    # Extract main repo path
+                    main_git_dir = gitdir.split('.git/worktrees/')[0] + '.git'
+                    repo_path = os.path.dirname(main_git_dir)
+                    return os.path.normpath(repo_path)
+        except Exception:
+            pass
+        
+        return None
+    
     def on_delete_repo_clicked(self):
         """Handle delete repo button click"""
         current_tab = self.get_current_tab()
@@ -1793,8 +1983,6 @@ class BTGui(QMainWindow):
             worktrees = self.discovery.get_worktrees(repo_path)
         
         # Confirm deletion
-        from PyQt6.QtWidgets import QMessageBox
-        
         if worktrees:
             # Show warning about worktrees
             worktree_list = '\n'.join([f'  - {os.path.basename(wt)}' for wt in worktrees])
@@ -1874,8 +2062,6 @@ class BTGui(QMainWindow):
     
     def on_create_worktree_clicked(self):
         """Handle create worktree button click"""
-        from PyQt6.QtWidgets import QInputDialog, QMessageBox
-        
         current_tab = self.get_current_tab()
         if not current_tab or not isinstance(current_tab, WorkspaceTab):
             return
@@ -2100,8 +2286,6 @@ class BTGui(QMainWindow):
     
     def on_destroy_worktree_clicked(self):
         """Handle destroy worktree button click"""
-        from PyQt6.QtWidgets import QMessageBox
-        
         current_tab = self.get_current_tab()
         if not current_tab or not isinstance(current_tab, WorkspaceTab):
             return
@@ -2284,7 +2468,7 @@ class BTGui(QMainWindow):
             process.current_tab.cmd_output.ensureCursorVisible()
     
     def _run_bt_command(self, command, args=None):
-        """Run a bt command in the current tab's console"""
+        """Run a bt command in the current tab's console using the interactive shell"""
         current_tab = self.get_current_tab()
         if not current_tab or not isinstance(current_tab, WorkspaceTab):
             return
@@ -2297,8 +2481,6 @@ class BTGui(QMainWindow):
             )
             return
         
-        workspace_path = current_tab.workspace_path
-        
         # Build the command
         if sys.platform == 'win32':
             bt_executable = 'bt.cmd'
@@ -2307,11 +2489,16 @@ class BTGui(QMainWindow):
         
         cmd_parts = [bt_executable, command]
         if args:
-            cmd_parts.extend(args)
+            # Quote arguments that contain spaces
+            for arg in args:
+                if ' ' in arg:
+                    cmd_parts.append(f'"{arg}"')
+                else:
+                    cmd_parts.append(arg)
         
         cmd_str = ' '.join(cmd_parts)
         
-        # Send the command to the shell
+        # Run the command through the interactive shell
         current_tab.cmd_output.run_command(cmd_str)
         
         self.status_bar.showMessage(f'Running: bt {command}', 3000)
@@ -2333,13 +2520,22 @@ class BTGui(QMainWindow):
         self._run_bt_command('merge')
     
     def on_bt_top_clicked(self):
-        """Handle bt top button click"""
-        self._run_bt_command('top')
+        """Handle bt top button click - changes to workspace root directory"""
+        current_tab = self.get_current_tab()
+        if not current_tab or not isinstance(current_tab, WorkspaceTab):
+            return
+        
+        # Get the workspace root path
+        workspace_path = current_tab.workspace_path
+        
+        # Change directory to workspace root using the shell
+        if sys.platform == 'win32':
+            current_tab.cmd_output.run_command(f'cd /d "{workspace_path}"')
+        else:
+            current_tab.cmd_output.run_command(f'cd "{workspace_path}"')
     
     def on_bt_move_clicked(self):
         """Handle bt move button click (worktree only)"""
-        from PyQt6.QtWidgets import QInputDialog
-        
         current_tab = self.get_current_tab()
         if not current_tab or not isinstance(current_tab, WorkspaceTab):
             return
@@ -2378,12 +2574,76 @@ class BTGui(QMainWindow):
         if reply != QMessageBox.StandardButton.Yes:
             return
         
-        self._run_bt_command('move', [new_path])
+        # Get the main repository for this worktree
+        old_path = current_tab.workspace_path
+        main_repo = self.get_main_repo_for_worktree(old_path)
+        
+        if not main_repo:
+            QMessageBox.warning(
+                self,
+                'Move Error',
+                'Could not find the main repository for this worktree.'
+            )
+            return
+        
+        # Change to the main repository to:
+        # 1. Release the lock on the worktree (Windows won't move CWD)
+        # 2. Provide git context for the move command
+        if sys.platform == 'win32':
+            current_tab.cmd_output.run_command(f'cd /d "{main_repo}"')
+        else:
+            current_tab.cmd_output.run_command(f'cd "{main_repo}"')
+        
+        # Run the move command with explicit paths after a delay
+        # bt move <destination> [<source_path>]
+        from PyQt6.QtCore import QTimer
+        
+        # Track retry count for checking move success
+        retry_count = [0]
+        max_retries = 10  # Check up to 10 times (10 seconds total)
+        
+        def do_move():
+            # Quote paths with spaces
+            old_quoted = f'"{old_path}"' if ' ' in old_path else old_path
+            new_quoted = f'"{new_path}"' if ' ' in new_path else new_path
+            # bt move takes destination first, then source
+            if sys.platform == 'win32':
+                current_tab.cmd_output.run_command(f'bt.cmd move {new_quoted} {old_quoted}')
+            else:
+                current_tab.cmd_output.run_command(f'bt.sh move {new_quoted} {old_quoted}')
+            
+            # Check for success after a delay and update the tab
+            QTimer.singleShot(1000, check_move_success)
+        
+        def check_move_success():
+            retry_count[0] += 1
+            # Check if move succeeded by verifying new path exists and old doesn't
+            if os.path.exists(new_path) and not os.path.exists(old_path):
+                # Update the tab's workspace path
+                current_tab.workspace_path = new_path
+                
+                # Update the tab name
+                new_name = os.path.basename(new_path)
+                tab_index = self.tab_widget.indexOf(current_tab)
+                if tab_index >= 0:
+                    self.tab_widget.setTabText(tab_index, new_name)
+                    self.tab_widget.setTabToolTip(tab_index, new_path)
+                
+                # Change shell directory to new location
+                if sys.platform == 'win32':
+                    current_tab.cmd_output.run_command(f'cd /d "{new_path}"')
+                else:
+                    current_tab.cmd_output.run_command(f'cd "{new_path}"')
+                
+                self.status_bar.showMessage(f'Worktree moved to {new_path}', 5000)
+            elif retry_count[0] < max_retries:
+                # Move not complete yet, try again in 1 second
+                QTimer.singleShot(1000, check_move_success)
+        
+        QTimer.singleShot(200, do_move)
     
     def on_add_repo_clicked(self):
         """Handle add repo button click"""
-        from PyQt6.QtWidgets import QFileDialog
-        
         # Browse for directory
         repo_path = QFileDialog.getExistingDirectory(
             self,
