@@ -10,9 +10,7 @@ set "POSTCMD=%TEMP%\postbt_!BTID!.cmd"
 if exist "!POSTCMD!" del "!POSTCMD!" > NUL
 :: Execute the BIOS tool with session ID
 py.exe "%~dp0%~n0.py" --btid=!BTID! %*
-:: See if there is a post executable command file
+:: Check if there is a post executable command file
 if not exist "!POSTCMD!" goto :EOF
-:: Execute post command file
-call "!POSTCMD!"
-:: Clean up post command file
-del "!POSTCMD!" > NUL 2>&1
+:: End local scope and execute post command file (so cd persists)
+endlocal & call "%TEMP%\postbt_%BTID%.cmd" & del "%TEMP%\postbt_%BTID%.cmd" > NUL 2>&1

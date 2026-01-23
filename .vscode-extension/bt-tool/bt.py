@@ -26,7 +26,7 @@ def InitSessionId():
 # If running this file
 if __name__ == '__main__':
   try:
-    print('BIOS Tool V0.8')
+    print('BIOS Tool V0.9')
     InitSessionId()
     InitializeSettings()
     LoadCommands()

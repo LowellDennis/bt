@@ -22,7 +22,7 @@ AllowNoIcons=yes
 InfoBeforeFile=..\..\README.md
 OutputDir=.\output
 OutputBaseFilename=BIOSTool-{#MyAppVersion}-Setup
-; SetupIconFile=..\..\.gui\biostool.ico
+SetupIconFile=..\..\.gui\biostool.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -74,8 +74,8 @@ Source: "..\..\.vscode-extension\*.vsix"; DestDir: "{tmp}"; Flags: ignoreversion
 [Icons]
 Name: "{group}\{#MyAppName} Documentation"; Filename: "{app}\README.md"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
-Name: "{group}\BIOS Tool GUI"; Filename: "py.exe"; Parameters: """{app}\.gui\btgui.py"""; WorkingDir: "{app}"
-Name: "{autodesktop}\BIOS Tool GUI"; Filename: "py.exe"; Parameters: """{app}\.gui\btgui.py"""; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{group}\BIOS Tool GUI"; Filename: "{code:GetPythonwPath}"; Parameters: """{app}\.gui\btgui.py"""; WorkingDir: "{app}"; IconFilename: "{app}\.gui\biostool.ico"
+Name: "{autodesktop}\BIOS Tool GUI"; Filename: "{code:GetPythonwPath}"; Parameters: """{app}\.gui\btgui.py"""; WorkingDir: "{app}"; IconFilename: "{app}\.gui\biostool.ico"; Tasks: desktopicon
 
 [Registry]
 ; Register installation path for detection
@@ -95,6 +95,66 @@ begin
   Result := Exec('python', '--version', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0);
   if not Result then
     Result := Exec('py', '--version', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0);
+end;
+
+function GetPythonwPath(Param: String): String;
+var
+  PythonPath: String;
+begin
+  // Try to find pyw.exe in common Python installation locations
+  // First check the Windows App alias location
+  PythonPath := ExpandConstant('{localappdata}\Microsoft\WindowsApps\pyw.exe');
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  // Check common Python install paths
+  PythonPath := 'C:\Python312\pyw.exe';
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  PythonPath := 'C:\Python311\pyw.exe';
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  PythonPath := ExpandConstant('{pf}\Python312\pyw.exe');
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  PythonPath := ExpandConstant('{pf}\Python311\pyw.exe');
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  PythonPath := ExpandConstant('{localappdata}\Programs\Python\Python312\pyw.exe');
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  PythonPath := ExpandConstant('{localappdata}\Programs\Python\Python311\pyw.exe');
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  // Fallback to just pyw.exe (relies on PATH)
+  Result := 'pyw.exe';
 end;
 
 function GetVSCodePath(): String;
