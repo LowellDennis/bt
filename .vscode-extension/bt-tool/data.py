@@ -177,6 +177,17 @@ def InitializeSettings():
               name = FixStr(parts[0].lower())                 # Get worktree name
               name = FixPath(name)
               data.gbl.worktrees.append(name)                 # Add worktree to list
+              # Cache branch info from worktree list output
+              # Format: worktree-path commit-hash [branch-name]
+              if not hasattr(data.gbl, 'worktree_cache'):
+                data.gbl.worktree_cache = {}                  # Initialize cache
+              # Extract branch from parts[2] which should be [branch-name]
+              if len(parts) > 2:
+                branch_part = parts[2].decode('utf-8') if isinstance(parts[2], bytes) else parts[2]
+                branch = branch_part[1:-1] if branch_part.startswith('[') and branch_part.endswith(']') else 'detached'
+              else:
+                branch = 'detached'
+              data.gbl.worktree_cache[name] = {'repo': repo, 'branch': branch}
         # Handle mistaken repo
         else:
           continue

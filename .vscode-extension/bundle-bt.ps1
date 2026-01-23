@@ -18,7 +18,7 @@ if (Test-Path $TargetPath) {
 New-Item -ItemType Directory -Path $TargetPath -Force | Out-Null
 
 $coreFiles = @(
-    "bt.py", "bt.ps1", "bt.cmd", "abbrev.py", "announce.py", "cmdline.py",
+    "bt.py", "bt.ps1", "bt.cmd", "bt.sh", "abbrev.py", "announce.py", "cmdline.py",
     "command.py", "data.py", "error.py", "evaluate.py", "logger.py",
     "misc.py", "postbios.py", "run.py", "vcs.py", "global.txt", "local.txt"
 )

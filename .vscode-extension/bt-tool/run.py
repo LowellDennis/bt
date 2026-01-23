@@ -14,6 +14,8 @@ from announce   import Announce
 
 # Default output filter for the commands below
 def NoFilter(line):
+  if line is None:
+    return
   out = line.decode('utf-8') if isinstance(line, bytes) else str(line)
   sys.stdout.write(out)
 
