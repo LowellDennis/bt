@@ -7,7 +7,19 @@ import sys
 import threading
 import queue
 from   subprocess import PIPE, Popen, run, STDOUT
-from   wakepy import keep
+from   contextlib import contextmanager
+
+# Optional wake-lock support (keeps system awake during long operations)
+try:
+    from wakepy import keep
+except ImportError:
+    # Fallback if wakepy is not installed
+    class _KeepFallback:
+        @staticmethod
+        @contextmanager
+        def running():
+            yield
+    keep = _KeepFallback()
 
 # Local modules
 from announce   import Announce

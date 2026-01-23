@@ -1,0 +1,11 @@
+# HPE Server BIOS Tool (BT) - Python Dependencies
+#
+# Install with: pip install -r requirements.txt
+#
+# Note: The Windows installer automatically installs these dependencies.
+
+# Keep system awake during long-running builds
+wakepy
+
+# GUI application (optional - only needed for btgui)
+PyQt6

@@ -34,48 +34,48 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Types]
 Name: "full"; Description: "Full installation"
-Name: "custom"; Description: "Custom installation"; Flags: iscustom
-
-[Components]
-Name: "core"; Description: "BT Command Line Tool"; Types: full custom; Flags: fixed
-Name: "vscode"; Description: "VS Code Extension"; Types: full custom
-Name: "gui"; Description: "GUI Application (future)"; Types: full custom; Flags: dontinheritcheck
 
 [Tasks]
-Name: "addtopath"; Description: "Add BT to system PATH"; GroupDescription: "Additional tasks:"; Components: core
-Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional shortcuts:"; Components: gui; Flags: unchecked
+Name: "addtopath"; Description: "Add BT to system PATH"; GroupDescription: "Additional tasks:"
+Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 
 [Files]
 ; Core BT Tool files
-Source: "..\..\*.py"; DestDir: "{app}"; Components: core; Flags: ignoreversion
-Source: "..\..\*.cmd"; DestDir: "{app}"; Components: core; Flags: ignoreversion
-Source: "..\..\*.ps1"; DestDir: "{app}"; Components: core; Flags: ignoreversion
-Source: "..\..\*.sh"; DestDir: "{app}"; Components: core; Flags: ignoreversion
-Source: "..\..\*.txt"; DestDir: "{app}"; Components: core; Flags: ignoreversion
-Source: "..\..\README.md"; DestDir: "{app}"; Components: core; Flags: ignoreversion
-Source: "..\..\attach\*"; DestDir: "{app}\attach"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\build\*"; DestDir: "{app}\build"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\clean\*"; DestDir: "{app}\clean"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\config\*"; DestDir: "{app}\config"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\create\*"; DestDir: "{app}\create"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\destroy\*"; DestDir: "{app}\destroy"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\detach\*"; DestDir: "{app}\detach"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\init\*"; DestDir: "{app}\init"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\merge\*"; DestDir: "{app}\merge"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\move\*"; DestDir: "{app}\move"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\pull\*"; DestDir: "{app}\pull"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\push\*"; DestDir: "{app}\push"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\select\*"; DestDir: "{app}\select"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\status\*"; DestDir: "{app}\status"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\switch\*"; DestDir: "{app}\switch"; Components: core; Flags: ignoreversion recursesubdirs
-Source: "..\..\top\*"; DestDir: "{app}\top"; Components: core; Flags: ignoreversion recursesubdirs
+Source: "..\..\*.py"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\*.cmd"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\*.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\*.sh"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\*.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\attach\*"; DestDir: "{app}\attach"; Flags: ignoreversion recursesubdirs
+Source: "..\..\build\*"; DestDir: "{app}\build"; Flags: ignoreversion recursesubdirs
+Source: "..\..\clean\*"; DestDir: "{app}\clean"; Flags: ignoreversion recursesubdirs
+Source: "..\..\config\*"; DestDir: "{app}\config"; Flags: ignoreversion recursesubdirs
+Source: "..\..\create\*"; DestDir: "{app}\create"; Flags: ignoreversion recursesubdirs
+Source: "..\..\destroy\*"; DestDir: "{app}\destroy"; Flags: ignoreversion recursesubdirs
+Source: "..\..\detach\*"; DestDir: "{app}\detach"; Flags: ignoreversion recursesubdirs
+Source: "..\..\init\*"; DestDir: "{app}\init"; Flags: ignoreversion recursesubdirs
+Source: "..\..\merge\*"; DestDir: "{app}\merge"; Flags: ignoreversion recursesubdirs
+Source: "..\..\move\*"; DestDir: "{app}\move"; Flags: ignoreversion recursesubdirs
+Source: "..\..\pull\*"; DestDir: "{app}\pull"; Flags: ignoreversion recursesubdirs
+Source: "..\..\push\*"; DestDir: "{app}\push"; Flags: ignoreversion recursesubdirs
+Source: "..\..\select\*"; DestDir: "{app}\select"; Flags: ignoreversion recursesubdirs
+Source: "..\..\status\*"; DestDir: "{app}\status"; Flags: ignoreversion recursesubdirs
+Source: "..\..\switch\*"; DestDir: "{app}\switch"; Flags: ignoreversion recursesubdirs
+Source: "..\..\top\*"; DestDir: "{app}\top"; Flags: ignoreversion recursesubdirs
 
-; VS Code Extension (optional - only included if .vsix exists)
-Source: "..\..\.vscode-extension\*.vsix"; DestDir: "{tmp}"; Components: vscode; Flags: ignoreversion deleteafterinstall skipifsourcedoesntexist
+; GUI Application files
+Source: "..\..\.gui\btgui.py"; DestDir: "{app}\.gui"; Flags: ignoreversion
+Source: "..\..\.gui\biostool.ico"; DestDir: "{app}\.gui"; Flags: ignoreversion skipifsourcedoesntexist
+
+; VS Code Extension (included if .vsix exists, installed if VS Code detected)
+Source: "..\..\.vscode-extension\*.vsix"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall skipifsourcedoesntexist
 
 [Icons]
 Name: "{group}\{#MyAppName} Documentation"; Filename: "{app}\README.md"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
+Name: "{group}\BIOS Tool GUI"; Filename: "py.exe"; Parameters: """{app}\.gui\btgui.py"""; WorkingDir: "{app}"
+Name: "{autodesktop}\BIOS Tool GUI"; Filename: "py.exe"; Parameters: """{app}\.gui\btgui.py"""; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Registry]
 ; Register installation path for detection
@@ -133,21 +133,12 @@ function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
   
-  if CurPageID = wpSelectComponents then
+  if CurPageID = wpWelcome then
   begin
     if not PythonInstalled then
     begin
       if MsgBox('Python is not installed. The BIOS Tool requires Python to run.' + #13#10 + #13#10 + 
                 'Do you want to continue anyway? (You will need to install Python manually)', 
-                mbConfirmation, MB_YESNO) = IDNO then
-        Result := False;
-    end;
-    
-    if Result and WizardIsComponentSelected('vscode') and not VSCodeInstalled then
-    begin
-      if MsgBox('VS Code does not appear to be installed.' + #13#10 + #13#10 + 
-                'The extension will be included but not installed automatically.' + #13#10 + 
-                'Continue anyway?', 
                 mbConfirmation, MB_YESNO) = IDNO then
         Result := False;
     end;
@@ -162,8 +153,31 @@ var
 begin
   if CurStep = ssPostInstall then
   begin
-    // Install VS Code extension if selected and VS Code is installed
-    if WizardIsComponentSelected('vscode') and VSCodeInstalled then
+    // Install Python dependencies
+    if PythonInstalled then
+    begin
+      Log('Installing Python dependencies...');
+      // wakepy - keeps system awake during builds
+      if Exec('py', '-m pip install wakepy --quiet', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+      begin
+        if ResultCode = 0 then
+          Log('Successfully installed wakepy')
+        else
+          Log('Failed to install wakepy (code: ' + IntToStr(ResultCode) + ')');
+      end;
+      
+      // PyQt6 - required for GUI application
+      if Exec('py', '-m pip install PyQt6 --quiet', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+      begin
+        if ResultCode = 0 then
+          Log('Successfully installed PyQt6')
+        else
+          Log('Failed to install PyQt6 (code: ' + IntToStr(ResultCode) + ')');
+      end;
+    end;
+
+    // Install VS Code extension if VS Code is installed
+    if VSCodeInstalled then
     begin
       if FindFirst(ExpandConstant('{tmp}\*.vsix'), FindRec) then
       begin

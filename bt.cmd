@@ -9,7 +9,7 @@ set "POSTCMD=%TEMP%\postbt_!BTID!.cmd"
 :: Delete post executable command file (if it exists)
 if exist "!POSTCMD!" del "!POSTCMD!" > NUL
 :: Execute the BIOS tool with session ID
-py.exe %~dp0%~n0.py --btid=!BTID! %*
+py.exe "%~dp0%~n0.py" --btid=!BTID! %*
 :: See if there is a post executable command file
 if not exist "!POSTCMD!" goto :EOF
 :: Execute post command file
