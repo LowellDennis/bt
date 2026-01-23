@@ -169,8 +169,10 @@ The main program is 'bt.cmd'
 ### Version History ###
 | Version | Explanation                                                                            |
 |---------|----------------------------------------------------------------------------------------|
-| V0.9	  | Bug fix release                                                                        |
+| V0.9	  | Bug fixes and Linux/macOS improvements                                                 |
 |         | - Fixed NoFilter outputting "None" repeatedly during clean command timeouts            |
+|         | - Added bt.sh for native Linux/macOS shell support                                     |
+|         | - Added Linux/macOS support to post-command script generation                          |
 |---------|----------------------------------------------------------------------------------------|
 | V0.8	  | GUI improvements                                                                       |
 |---------|----------------------------------------------------------------------------------------|
