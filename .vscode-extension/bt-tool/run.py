@@ -9,17 +9,37 @@ import queue
 from   subprocess import PIPE, Popen, run, STDOUT
 from   contextlib import contextmanager
 
-# Optional wake-lock support (keeps system awake during long operations)
+# Wake-lock support (keeps system awake during long operations)
 try:
     from wakepy import keep
 except ImportError:
-    # Fallback if wakepy is not installed
-    class _KeepFallback:
-        @staticmethod
-        @contextmanager
-        def running():
-            yield
-    keep = _KeepFallback()
+    # wakepy not installed - install it automatically
+    if sys.platform == 'win32':
+        import ctypes
+        import subprocess
+        
+        # Run pip install with visible console
+        process = subprocess.Popen(
+            [sys.executable, '-m', 'pip', 'install', 'wakepy'],
+            creationflags=subprocess.CREATE_NEW_CONSOLE
+        )
+        process.wait()
+        
+        if process.returncode == 0:
+            ctypes.windll.user32.MessageBoxW(0, 
+                "wakepy installed successfully!\n\nPlease restart the command.", 
+                "Installation Complete", 
+                0x40)
+            sys.exit(0)  # Exit so user restarts with wakepy loaded
+        else:
+            ctypes.windll.user32.MessageBoxW(0, 
+                f"Failed to install wakepy.\n\nPlease install manually:\npython -m pip install wakepy", 
+                "Installation Failed", 
+                0x10)  # MB_ICONERROR
+            sys.exit(1)
+    else:
+        print("Error: wakepy is required but not installed. Install with: pip install wakepy")
+        sys.exit(1)
 
 # Local modules
 from announce   import Announce

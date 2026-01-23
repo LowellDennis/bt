@@ -19,8 +19,27 @@ try:
     from PyQt6.QtCore import Qt, QTimer, QProcess
     from PyQt6.QtGui import QFont, QTextCursor, QKeyEvent, QTextCharFormat, QColor
 except ImportError as e:
-    print(f"Required package not found: {e}")
-    print("Install with: pip install PyQt6")
+    # PyQt6 not installed - install it automatically
+    import ctypes
+    import subprocess
+    
+    # Run pip install with visible console
+    process = subprocess.Popen(
+        [sys.executable, '-m', 'pip', 'install', 'PyQt6'],
+        creationflags=subprocess.CREATE_NEW_CONSOLE
+    )
+    process.wait()
+    
+    if process.returncode == 0:
+        ctypes.windll.user32.MessageBoxW(0, 
+            "PyQt6 installed successfully!\n\nPlease restart the BIOS Tool GUI.", 
+            "Installation Complete", 
+            0x40)  # MB_ICONINFORMATION
+    else:
+        ctypes.windll.user32.MessageBoxW(0, 
+            f"Failed to install PyQt6.\n\nTry running manually:\n{sys.executable} -m pip install PyQt6", 
+            "Installation Failed", 
+            0x10)  # MB_ICONERROR
     sys.exit(1)
 
 # Add current directory to path for imports

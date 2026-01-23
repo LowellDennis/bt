@@ -102,7 +102,23 @@ var
   PythonPath: String;
 begin
   // Try to find pyw.exe in common Python installation locations
-  // First check the Windows App alias location
+  // First check the Windows directory (Python Launcher for Windows)
+  PythonPath := ExpandConstant('{win}\pyw.exe');
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  // Check the Python Launcher location
+  PythonPath := ExpandConstant('{localappdata}\Programs\Python\Launcher\pyw.exe');
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  // Check Windows App alias location
   PythonPath := ExpandConstant('{localappdata}\Microsoft\WindowsApps\pyw.exe');
   if FileExists(PythonPath) then
   begin
@@ -110,7 +126,21 @@ begin
     Exit;
   end;
   
-  // Check common Python install paths
+  // Check common Python install paths (various versions)
+  PythonPath := 'C:\Python314\pyw.exe';
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  PythonPath := 'C:\Python313\pyw.exe';
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
   PythonPath := 'C:\Python312\pyw.exe';
   if FileExists(PythonPath) then
   begin
@@ -118,7 +148,14 @@ begin
     Exit;
   end;
   
-  PythonPath := 'C:\Python311\pyw.exe';
+  PythonPath := ExpandConstant('{pf}\Python314\pyw.exe');
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  PythonPath := ExpandConstant('{pf}\Python313\pyw.exe');
   if FileExists(PythonPath) then
   begin
     Result := PythonPath;
@@ -132,7 +169,14 @@ begin
     Exit;
   end;
   
-  PythonPath := ExpandConstant('{pf}\Python311\pyw.exe');
+  PythonPath := ExpandConstant('{localappdata}\Programs\Python\Python314\pyw.exe');
+  if FileExists(PythonPath) then
+  begin
+    Result := PythonPath;
+    Exit;
+  end;
+  
+  PythonPath := ExpandConstant('{localappdata}\Programs\Python\Python313\pyw.exe');
   if FileExists(PythonPath) then
   begin
     Result := PythonPath;
@@ -140,13 +184,6 @@ begin
   end;
   
   PythonPath := ExpandConstant('{localappdata}\Programs\Python\Python312\pyw.exe');
-  if FileExists(PythonPath) then
-  begin
-    Result := PythonPath;
-    Exit;
-  end;
-  
-  PythonPath := ExpandConstant('{localappdata}\Programs\Python\Python311\pyw.exe');
   if FileExists(PythonPath) then
   begin
     Result := PythonPath;
@@ -210,30 +247,80 @@ var
   ResultCode: Integer;
   EnvPath: String;
   FindRec: TFindRec;
+  PythonExe: String;
 begin
   if CurStep = ssPostInstall then
   begin
-    // Install Python dependencies
-    if PythonInstalled then
+    // Find a working Python executable for pip
+    PythonExe := '';
+    if FileExists(ExpandConstant('{win}\py.exe')) then
+      PythonExe := ExpandConstant('{win}\py.exe')
+    else if FileExists('C:\Python314\python.exe') then
+      PythonExe := 'C:\Python314\python.exe'
+    else if FileExists('C:\Python313\python.exe') then
+      PythonExe := 'C:\Python313\python.exe'
+    else if FileExists('C:\Python312\python.exe') then
+      PythonExe := 'C:\Python312\python.exe'
+    else if FileExists(ExpandConstant('{localappdata}\Programs\Python\Python314\python.exe')) then
+      PythonExe := ExpandConstant('{localappdata}\Programs\Python\Python314\python.exe')
+    else if FileExists(ExpandConstant('{localappdata}\Programs\Python\Python313\python.exe')) then
+      PythonExe := ExpandConstant('{localappdata}\Programs\Python\Python313\python.exe')
+    else if FileExists(ExpandConstant('{localappdata}\Programs\Python\Python312\python.exe')) then
+      PythonExe := ExpandConstant('{localappdata}\Programs\Python\Python312\python.exe')
+    else if FileExists(ExpandConstant('{pf}\Python314\python.exe')) then
+      PythonExe := ExpandConstant('{pf}\Python314\python.exe')
+    else if FileExists(ExpandConstant('{pf}\Python313\python.exe')) then
+      PythonExe := ExpandConstant('{pf}\Python313\python.exe')
+    else if FileExists(ExpandConstant('{pf}\Python312\python.exe')) then
+      PythonExe := ExpandConstant('{pf}\Python312\python.exe');
+    
+    // Install Python dependencies if we found Python
+    if PythonExe <> '' then
     begin
-      Log('Installing Python dependencies...');
-      // wakepy - keeps system awake during builds
-      if Exec('py', '-m pip install wakepy --quiet', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-      begin
-        if ResultCode = 0 then
-          Log('Successfully installed wakepy')
-        else
-          Log('Failed to install wakepy (code: ' + IntToStr(ResultCode) + ')');
-      end;
+      Log('Installing Python dependencies using: ' + PythonExe);
       
-      // PyQt6 - required for GUI application
-      if Exec('py', '-m pip install PyQt6 --quiet', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+      // Show progress to user
+      WizardForm.StatusLabel.Caption := 'Installing Python dependencies (PyQt6, wakepy)...';
+      WizardForm.StatusLabel.Update;
+      
+      // PyQt6 - required for GUI application (install first as it's required)
+      if Exec(PythonExe, '-m pip install PyQt6', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
       begin
         if ResultCode = 0 then
           Log('Successfully installed PyQt6')
         else
+        begin
           Log('Failed to install PyQt6 (code: ' + IntToStr(ResultCode) + ')');
+          MsgBox('Warning: Failed to install PyQt6 (required for GUI).' + #13#10 + #13#10 +
+                 'Please run this command manually after installation:' + #13#10 +
+                 '"' + PythonExe + '" -m pip install PyQt6', mbInformation, MB_OK);
+        end;
+      end
+      else
+      begin
+        Log('Could not execute pip for PyQt6');
+        MsgBox('Warning: Could not install PyQt6 (required for GUI).' + #13#10 + #13#10 +
+               'Please run this command manually after installation:' + #13#10 +
+               '"' + PythonExe + '" -m pip install PyQt6', mbInformation, MB_OK);
       end;
+      
+      // wakepy - keeps system awake during builds (optional)
+      if Exec(PythonExe, '-m pip install wakepy', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+      begin
+        if ResultCode = 0 then
+          Log('Successfully installed wakepy')
+        else
+          Log('Failed to install wakepy (code: ' + IntToStr(ResultCode) + ') - optional dependency');
+      end;
+      
+      WizardForm.StatusLabel.Caption := '';
+    end
+    else
+    begin
+      Log('Could not find Python executable for dependency installation');
+      MsgBox('Warning: Could not find Python to install dependencies.' + #13#10 + #13#10 +
+             'The GUI requires PyQt6. Please install it manually:' + #13#10 +
+             'python -m pip install PyQt6', mbInformation, MB_OK);
     end;
 
     // Install VS Code extension if VS Code is installed
