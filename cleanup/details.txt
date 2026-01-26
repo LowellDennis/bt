@@ -1,10 +1,10 @@
 Description
 -----------
-Clean the current BIOS repository or worktree.
+Cleanup the current BIOS repository or worktree.
 
 Usage
 -----
-bt clean
+bt cleanup
 
 Steps
 -----

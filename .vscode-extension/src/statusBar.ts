@@ -13,7 +13,7 @@ export class BTStatusBar {
             vscode.StatusBarAlignment.Left,
             100
         );
-        this.statusBarItem.command = 'BIOSTool.switch';
+        this.statusBarItem.command = 'BIOSTool.use';
         this.statusBarItem.show();
         this.updatePlatform();
     }
@@ -69,7 +69,7 @@ export class BTStatusBar {
             if (platform) {
                 tooltipParts.push(`Platform: ${platform}`);
             }
-            tooltipParts.push('\nClick to switch workspace');
+            tooltipParts.push('\nClick to use different workspace');
             this.statusBarItem.tooltip = tooltipParts.join('\n');
             this.statusBarItem.show();
         } else {

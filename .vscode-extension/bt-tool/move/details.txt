@@ -25,4 +25,4 @@ Steps
 
 See also
 --------
-create, destroy, switch
+create, remove, use

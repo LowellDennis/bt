@@ -1,0 +1,22 @@
+Description
+-----------
+Cleanup the current BIOS repository or worktree.
+
+Usage
+-----
+bt cleanup
+
+Steps
+-----
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+3. Determine the top directory of the target repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+3. Delete the BUILD folder that is a subdirectory of the top directory.
+4. Change the directory to the top directory,
+   if the starting directory no longer exists.
+
+See also
+--------
+build

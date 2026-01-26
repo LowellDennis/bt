@@ -14,9 +14,9 @@ from vcs      import GetVCSInfo
 
 INPUT = raw_input if sys.version_info.major == 2 else input
 
-# Destroy command handler
+# Remove command handler
 # returns 0 on success, DOES NOT RETURN otherwise
-def destroy():
+def remove():
   # Get command line information
   prms, opts = ParseCommandLine({'keep': False, 'yes': False}, 1)
   # Does not return if invalid options or parameters are found
@@ -56,13 +56,13 @@ def destroy():
 
     # Add command for removing a worktree
     cmd  = 'git worktree remove --force {0}'.format(worktree)
-    cmds += PostCMD(cmd, 'Removing worktree', 'Destroy Worktree')
+    cmds += PostCMD(cmd, 'Removing worktree', 'Remove Worktree')
 
     # Handle removal of associate branch (unless instructed to leave it)
     if not opts['keep'] and branch:
       # Check if branch is used by other worktrees before deleting
       cmd = 'git worktree list | findstr /I "{0}" >nul || git branch -D {0}'.format(branch)
-      cmds += PostCMD(cmd, 'Removing branch (if not in use)', 'Destroy Branch')
+      cmds += PostCMD(cmd, 'Removing branch (if not in use)', 'Remove Branch')
 
     PostBIOS(cmds)
 

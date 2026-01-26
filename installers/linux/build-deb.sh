@@ -28,14 +28,14 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
 # Create build directory structure
-PACKAGE_DIR="$BUILD_DIR/biostool-0.7.0"
+PACKAGE_DIR="$BUILD_DIR/biostool-1.0.0"
 mkdir -p "$PACKAGE_DIR"
 
 # Copy source files
 echo "Copying source files..."
 cd "$PROJECT_ROOT"
 cp -r *.py *.txt *.md "$PACKAGE_DIR/" 2>/dev/null || true
-cp -r attach build clean config create destroy detach init merge move pull push select status switch top "$PACKAGE_DIR/"
+cp -r attach build cleanup config create remove detach init merge move fetch push select status use top worktrees "$PACKAGE_DIR/"
 
 # Copy debian directory
 echo "Copying debian package files..."
@@ -74,5 +74,5 @@ echo "Output files:"
 ls -lh "$BUILD_DIR"/*.deb 2>/dev/null || true
 echo ""
 echo "To install:"
-echo "  sudo dpkg -i $BUILD_DIR/biostool_0.7.0-1_all.deb"
+echo "  sudo dpkg -i $BUILD_DIR/biostool_1.0.0-1_all.deb"
 echo "  sudo apt-get install -f  # To fix any dependency issues"

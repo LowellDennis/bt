@@ -11,9 +11,9 @@ from error    import ErrorMessage
 from run      import DoCommand
 from vcs      import GetVCSInfo
 
-# Init command handler
+# Fetch command handler
 # returns 0 on success, DOES NOT RETURN otherwise
-def pull():
+def fetch():
   # Get command line information
   prms, opts = ParseCommandLine(None, 1)
   # DOES NOT RETURN if invalid options or parameters are found
@@ -42,6 +42,6 @@ def pull():
   else:
     cmd = 'git pull --rebase'
 
-  rc = DoCommand('Syncing with upstream repository', 'Pull Operation', cmd, info.Repo())
+  rc = DoCommand('Syncing with upstream repository', 'Fetch Operation', cmd, info.Repo())
 
   return rc

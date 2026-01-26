@@ -1,0 +1,1 @@
+Lists all worktrees with their repository, branch, and purpose.

@@ -2,7 +2,7 @@
   "name": "BIOSTool",
   "displayName": "BIOS Tool Integration",
   "description": "VS Code integration for HPE Server BIOS Tool (bt)",
-  "version": "0.7.0",
+  "version": "1.0.0",
   "icon": "biostool.ico",
   "repository": {
     "type": "git",
@@ -32,8 +32,8 @@
         "icon": "$(gear)"
       },
       {
-        "command": "BIOSTool.clean",
-        "title": "BT: Clean",
+        "command": "BIOSTool.cleanup",
+        "title": "BT: Cleanup",
         "icon": "$(trash)"
       },
       {
@@ -41,12 +41,12 @@
         "title": "BT: Status"
       },
       {
-        "command": "BIOSTool.switch",
-        "title": "BT: Switch"
+        "command": "BIOSTool.use",
+        "title": "BT: Use"
       },
       {
-        "command": "BIOSTool.pull",
-        "title": "BT: Pull"
+        "command": "BIOSTool.fetch",
+        "title": "BT: Fetch"
       },
       {
         "command": "BIOSTool.push",

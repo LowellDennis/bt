@@ -1,3 +1,15 @@
+biostool (1.0.0-1) unstable; urgency=medium
+
+  * New upstream release 1.0.0
+  * Major command rename for better abbreviation support
+  * Renamed destroy → remove, switch → use, clean → cleanup, pull → fetch
+  * Added new worktrees command for listing worktrees with purposes
+  * Added /purpose option to create command for tracking worktree purposes
+  * Now 10 commands have single-letter abbreviations (up from 3)
+  * Updated all documentation, GUI, and VS Code extension
+
+ -- Lowell Dennis <lowell.dennis@hpe.com>  Sun, 26 Jan 2026 12:00:00 +0000
+
 biostool (0.9.0-1) unstable; urgency=medium
 
   * New upstream release 0.9.0

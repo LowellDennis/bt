@@ -29,9 +29,9 @@ def PerformClean(target):
     rc = 1
   return rc
 
-# Clean command handler
+# Cleanup command handler
 # returns 0 on success, DOES NOT RETURN otherwise
-def clean():
+def cleanup():
   global cln
 
   # Get command line information
@@ -50,5 +50,5 @@ def clean():
   print('')
   result = 'Successful' if rc == 0 else 'FAILED'
   char   = '*'          if rc == 0 else '!'
-  Announce('Clean {0}'.format(result), char)
+  Announce('Cleanup {0}'.format(result), char)
   return rc

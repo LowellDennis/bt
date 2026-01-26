@@ -22,4 +22,4 @@ Steps
 
 See also
 --------
-pull, select, switch
+fetch, select, use

@@ -4,9 +4,11 @@ Creates a new BIOS worktree and adds it to the list of worktrees.
 
 Usage
 -----
-bt create [/repo <path>] <branch> <worktree> [<commit-ish>]
+bt create [/repo <path>] [/purpose <description>] <branch> <worktree> [<commit-ish>]
    /repo:      The path to the repository from which to create the BIOS worktree.
                (The default is the currently selected repository.)
+   /purpose:   A description of the purpose of this worktree.
+               (Optional, helps track what the worktree is for.)
    branch:     The branch name for the new BIOS worktree.
    commit-ish: Commit ID, tag, or branch on which the new worktree branch is to be based.
                (The default is HEAD.)
@@ -30,4 +32,4 @@ Steps
 
 See also
 --------
-destroy, push, pull, switch
+remove, push, fetch, use, worktrees

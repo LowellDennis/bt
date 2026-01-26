@@ -1453,11 +1453,11 @@ class BTGui(QMainWindow):
         self.stop_btn.clicked.connect(self.on_stop_clicked)
         general_cmds_layout.addWidget(self.stop_btn)
         
-        # Clean button
-        self.clean_btn = QPushButton('🧹 Clean')
-        self.clean_btn.setEnabled(False)
-        self.clean_btn.clicked.connect(self.on_clean_clicked)
-        general_cmds_layout.addWidget(self.clean_btn)
+        # Cleanup button
+        self.cleanup_btn = QPushButton('🧹 Cleanup')
+        self.cleanup_btn.setEnabled(False)
+        self.cleanup_btn.clicked.connect(self.on_cleanup_clicked)
+        general_cmds_layout.addWidget(self.cleanup_btn)
         
         # Status button
         self.status_btn = QPushButton('📊 Status')
@@ -1465,11 +1465,11 @@ class BTGui(QMainWindow):
         self.status_btn.clicked.connect(self.on_bt_status_clicked)
         general_cmds_layout.addWidget(self.status_btn)
         
-        # Pull button
-        self.pull_btn = QPushButton('⬇ Pull')
-        self.pull_btn.setEnabled(False)
-        self.pull_btn.clicked.connect(self.on_bt_pull_clicked)
-        general_cmds_layout.addWidget(self.pull_btn)
+        # Fetch button
+        self.fetch_btn = QPushButton('⬇ Fetch')
+        self.fetch_btn.setEnabled(False)
+        self.fetch_btn.clicked.connect(self.on_bt_fetch_clicked)
+        general_cmds_layout.addWidget(self.fetch_btn)
         
         # Push button
         self.push_btn = QPushButton('⬆ Push')
@@ -1534,11 +1534,11 @@ class BTGui(QMainWindow):
         self.move_btn.clicked.connect(self.on_bt_move_clicked)
         worktree_ops_layout.addWidget(self.move_btn)
         
-        # Destroy Worktree button
-        self.destroy_worktree_btn = QPushButton('❌ Destroy Worktree')
-        self.destroy_worktree_btn.setEnabled(False)
-        self.destroy_worktree_btn.clicked.connect(self.on_destroy_worktree_clicked)
-        worktree_ops_layout.addWidget(self.destroy_worktree_btn)
+        # Remove Worktree button
+        self.remove_worktree_btn = QPushButton('❌ Remove Worktree')
+        self.remove_worktree_btn.setEnabled(False)
+        self.remove_worktree_btn.clicked.connect(self.on_remove_worktree_clicked)
+        worktree_ops_layout.addWidget(self.remove_worktree_btn)
         
         worktree_ops_group.setLayout(worktree_ops_layout)
         layout.addWidget(worktree_ops_group)
@@ -1860,14 +1860,14 @@ class BTGui(QMainWindow):
             self.build_btn.setEnabled(has_platform and not any_build_running)
             # Stop is only enabled if the current tab is the one building
             self.stop_btn.setEnabled(is_current_tab_building)
-            self.clean_btn.setEnabled(has_platform and not any_build_running)
+            self.cleanup_btn.setEnabled(has_platform and not any_build_running)
             self.delete_repo_btn.setEnabled(is_main_repo)
             self.create_worktree_btn.setEnabled(is_main_repo and is_git_repo and not any_build_running)
-            self.destroy_worktree_btn.setEnabled(is_worktree and not any_build_running)
+            self.remove_worktree_btn.setEnabled(is_worktree and not any_build_running)
             
             # BT Commands - enabled for both repos and worktrees (not during any build)
             self.status_btn.setEnabled(not any_build_running)
-            self.pull_btn.setEnabled(not any_build_running)
+            self.fetch_btn.setEnabled(not any_build_running)
             self.push_btn.setEnabled(not any_build_running)
             self.merge_btn.setEnabled(not any_build_running)
             self.top_btn.setEnabled(not any_build_running)
@@ -1876,12 +1876,12 @@ class BTGui(QMainWindow):
         else:
             self.build_btn.setEnabled(False)
             self.stop_btn.setEnabled(False)
-            self.clean_btn.setEnabled(False)
+            self.cleanup_btn.setEnabled(False)
             self.delete_repo_btn.setEnabled(False)
             self.create_worktree_btn.setEnabled(False)
-            self.destroy_worktree_btn.setEnabled(False)
+            self.remove_worktree_btn.setEnabled(False)
             self.status_btn.setEnabled(False)
-            self.pull_btn.setEnabled(False)
+            self.fetch_btn.setEnabled(False)
             self.push_btn.setEnabled(False)
             self.merge_btn.setEnabled(False)
             self.top_btn.setEnabled(False)
@@ -1921,12 +1921,12 @@ class BTGui(QMainWindow):
             self.status_bar.showMessage('Build stopped')
             self.update_button_states()
     
-    def on_clean_clicked(self):
-        """Handle clean button click - runs bt clean"""
+    def on_cleanup_clicked(self):
+        """Handle cleanup button click - runs bt cleanup"""
         current_tab = self.get_current_tab()
         if current_tab and isinstance(current_tab, WorkspaceTab):
-            self._run_bt_command('clean')
-            self.status_bar.showMessage('Clean requested')
+            self._run_bt_command('cleanup')
+            self.status_bar.showMessage('Cleanup requested')
     
     def is_main_repo(self, path):
         """Check if the path is a main repository (not a worktree)"""
@@ -2303,8 +2303,8 @@ class BTGui(QMainWindow):
             # Re-enable input after error
             process.current_tab.cmd_output.set_input_enabled(True)
     
-    def on_destroy_worktree_clicked(self):
-        """Handle destroy worktree button click"""
+    def on_remove_worktree_clicked(self):
+        """Handle remove worktree button click"""
         current_tab = self.get_current_tab()
         if not current_tab or not isinstance(current_tab, WorkspaceTab):
             return
@@ -2316,16 +2316,16 @@ class BTGui(QMainWindow):
         if not os.path.isfile(git_file):
             QMessageBox.warning(
                 self,
-                'Destroy Worktree',
-                'This is not a worktree. Only worktrees can be destroyed using this button.'
+                'Remove Worktree',
+                'This is not a worktree. Only worktrees can be removed using this button.'
             )
             return
         
         # Confirm deletion
         reply = QMessageBox.question(
             self,
-            'Destroy Worktree',
-            f'Are you sure you want to destroy this worktree?\n\n'
+            'Remove Worktree',
+            f'Are you sure you want to remove this worktree?\n\n'
             f'Path: {worktree_path}\n\n'
             f'WARNING: This will remove the worktree from git.\n'
             f'Any uncommitted changes will be lost!\n\n'
@@ -2396,12 +2396,12 @@ class BTGui(QMainWindow):
         if not hasattr(repo_tab, 'cmd_output'):
             QMessageBox.warning(
                 self,
-                'Destroy Worktree',
+                'Remove Worktree',
                 'Command output window is not available. Cannot execute command.'
             )
             return
         
-        # Run bt destroy via QProcess
+        # Run bt remove via QProcess
         process = QProcess(self)
         process.setWorkingDirectory(repo_path)
         process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
@@ -2413,24 +2413,24 @@ class BTGui(QMainWindow):
         process.output_buffer = ""
         
         # Connect handlers
-        process.readyReadStandardOutput.connect(lambda: self._handle_destroy_output(process))
-        process.readyReadStandardError.connect(lambda: self._handle_destroy_output(process))
-        process.finished.connect(lambda exit_code, exit_status: self._handle_destroy_finished(process, exit_code))
-        process.errorOccurred.connect(lambda error: self._handle_destroy_error(process, error))
+        process.readyReadStandardOutput.connect(lambda: self._handle_remove_output(process))
+        process.readyReadStandardError.connect(lambda: self._handle_remove_output(process))
+        process.finished.connect(lambda exit_code, exit_status: self._handle_remove_finished(process, exit_code))
+        process.errorOccurred.connect(lambda error: self._handle_remove_error(process, error))
         
         # Use bt.cmd on Windows (via cmd.exe /c), bt.sh on Linux
         if sys.platform == 'win32':
             bt_executable = 'bt.cmd'
-            bt_cmd = ['cmd.exe', '/c', bt_executable, 'destroy', '/yes', worktree_path]
+            bt_cmd = ['cmd.exe', '/c', bt_executable, 'remove', '/yes', worktree_path]
         else:
             bt_executable = 'bt.sh'
-            bt_cmd = [bt_executable, 'destroy', '/yes', worktree_path]
+            bt_cmd = [bt_executable, 'remove', '/yes', worktree_path]
         
         # Show command in output window - insert at current cursor position
         cursor = current_tab.cmd_output.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
         cursor.insertText(f"\ncd {repo_path}\n")
-        cursor.insertText(f"{bt_executable} destroy /yes {worktree_path}\n")
+        cursor.insertText(f"{bt_executable} remove /yes {worktree_path}\n")
         current_tab.cmd_output.setTextCursor(cursor)
         current_tab.cmd_output.ensureCursorVisible()
         
@@ -2445,8 +2445,8 @@ class BTGui(QMainWindow):
             )
             return
     
-    def _handle_destroy_output(self, process):
-        """Handle output from bt destroy command"""
+    def _handle_remove_output(self, process):
+        """Handle output from bt remove command"""
         if not hasattr(process, 'current_tab') or not hasattr(process.current_tab, 'cmd_output'):
             return
         
@@ -2458,29 +2458,29 @@ class BTGui(QMainWindow):
             process.current_tab.cmd_output.ensureCursorVisible()
             process.output_buffer += output
     
-    def _handle_destroy_finished(self, process, exit_code):
-        """Handle completion of bt destroy command"""
+    def _handle_remove_finished(self, process, exit_code):
+        """Handle completion of bt remove command"""
         if not hasattr(process, 'current_tab'):
             return
         
         if exit_code == 0:
             process.current_tab.cmd_output.append(f"\n{'='*80}\n")
-            process.current_tab.cmd_output.append("Destroy Worktree Completed Successfully!\n")
+            process.current_tab.cmd_output.append("Remove Worktree Completed Successfully!\n")
             process.current_tab.cmd_output.append(f"{'='*80}\n\n")
             process.current_tab.cmd_output.ensureCursorVisible()
             
-            # Tab was already closed before destroying, no need to refresh
-            self.status_bar.showMessage(f'Worktree destroyed successfully', 5000)
+            # Tab was already closed before removing, no need to refresh
+            self.status_bar.showMessage(f'Worktree removed successfully', 5000)
         else:
             process.current_tab.cmd_output.append(f"\n{'='*80}\n")
-            process.current_tab.cmd_output.append(f"Destroy Worktree Failed! (exit code: {exit_code})\n")
+            process.current_tab.cmd_output.append(f"Remove Worktree Failed! (exit code: {exit_code})\n")
             process.current_tab.cmd_output.append(f"{'='*80}\n\n")
             process.current_tab.cmd_output.ensureCursorVisible()
             
-            self.status_bar.showMessage(f'Failed to destroy worktree (exit code: {exit_code})', 5000)
+            self.status_bar.showMessage(f'Failed to remove worktree (exit code: {exit_code})', 5000)
     
-    def _handle_destroy_error(self, process, error):
-        """Handle process errors during worktree destruction"""
+    def _handle_remove_error(self, process, error):
+        """Handle process errors during worktree removal"""
         if hasattr(process, 'current_tab') and hasattr(process.current_tab, 'cmd_output'):
             error_msg = f"\nProcess error occurred: {process.errorString()}\n"
             process.current_tab.cmd_output.append(error_msg)
@@ -2526,9 +2526,9 @@ class BTGui(QMainWindow):
         """Handle bt status button click"""
         self._run_bt_command('status')
     
-    def on_bt_pull_clicked(self):
-        """Handle bt pull button click"""
-        self._run_bt_command('pull')
+    def on_bt_fetch_clicked(self):
+        """Handle bt fetch button click"""
+        self._run_bt_command('fetch')
     
     def on_bt_push_clicked(self):
         """Handle bt push button click"""

@@ -24,4 +24,4 @@ Steps
 
 See also
 --------
-pull, push, select, switch, update
+fetch, push, select, use, update

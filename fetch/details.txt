@@ -1,11 +1,11 @@
 Description
 -----------
-Updates a local repository or worktree with changes from its remote location.
+Fetches changes from a remote repository or worktree and merges them into the local copy.
 
 Usage
 -----
-bt pull [<path>]
-  path:  repository or worktree on which to perform the pull operation
+bt fetch [<path>]
+  path:  repository or worktree on which to perform the fetch operation
          (if path is not given, the current directory is used)
 
 Steps
@@ -19,9 +19,9 @@ Steps
   b. Error: if the top is not in the list of repositories or worktrees!
   c. Error: if this repository or worktree has uncommitted changes.
 4. Perform the appropriate operation,
-  a. For git, pull.
+  a. For git, fetch and merge (git pull --rebase).
   b. For SVN, update.
 
 See also
 --------
-push, select, switch
+push, select, use

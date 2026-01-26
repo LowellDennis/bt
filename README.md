@@ -3,7 +3,7 @@
 ### What is this repository for? ###
 
 * A tool for working with HPE Server BIOS source code.
-* Current Version is V0.9
+* Current Version is V1.0
 
 ### How do I get set up? ###
 
@@ -168,6 +168,16 @@ The main program is 'bt.cmd'
 
 ### Version History ###
 | Version | Explanation                                                                            |
+|---------|----------------------------------------------------------------------------------------|
+| V1.0    | Major command rename for better abbreviation support and worktree purpose tracking    |
+|         | - Renamed destroy → remove (single letter 'r')                                         |
+|         | - Renamed switch → use (single letter 'u')                                             |
+|         | - Renamed clean → cleanup (two letters 'cl')                                           |
+|         | - Renamed pull → fetch (single letter 'f')                                             |
+|         | - Added new 'worktrees' command (single letter 'w') to list all worktrees with info   |
+|         | - Added /purpose option to create command for tracking worktree purposes               |
+|         | - Now 10 commands have single-letter abbreviations (up from 3)                         |
+|         | - Updated all documentation, GUI, and VS Code extension                                |
 |---------|----------------------------------------------------------------------------------------|
 | V0.9	  | Bug fixes and Linux/macOS improvements                                                 |
 |         | - Fixed NoFilter outputting "None" repeatedly during clean command timeouts            |

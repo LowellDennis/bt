@@ -1,0 +1,27 @@
+Description
+-----------
+Fetches changes from a remote repository or worktree and merges them into the local copy.
+
+Usage
+-----
+bt fetch [<path>]
+  path:  repository or worktree on which to perform the fetch operation
+         (if path is not given, the current directory is used)
+
+Steps
+-----
+1. Validate command line arguments.
+  a. Error: if command line arguments are invalid!
+2. The target directory is the path, if provided,
+   or the current directory if not.
+3. Determine the top directory of the target repository or worktree.
+  a. Error: if the top cannot be found!
+  b. Error: if the top is not in the list of repositories or worktrees!
+  c. Error: if this repository or worktree has uncommitted changes.
+4. Perform the appropriate operation,
+  a. For git, fetch and merge (git pull --rebase).
+  b. For SVN, update.
+
+See also
+--------
+push, select, use

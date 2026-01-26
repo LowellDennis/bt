@@ -2,7 +2,7 @@
 ; Requires Inno Setup 6.0 or later: https://jrsoftware.org/isinfo.php
 
 #define MyAppName "HPE Server BIOS Tool"
-#define MyAppVersion "0.9.0"
+#define MyAppVersion "1.0.0"
 #define MyAppPublisher "HPE"
 #define MyAppURL "https://github.com/LowellDennis/bt"
 #define MyAppExeName "bt.cmd"
@@ -49,20 +49,21 @@ Source: "..\..\*.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\attach\*"; DestDir: "{app}\attach"; Flags: ignoreversion recursesubdirs
 Source: "..\..\build\*"; DestDir: "{app}\build"; Flags: ignoreversion recursesubdirs
-Source: "..\..\clean\*"; DestDir: "{app}\clean"; Flags: ignoreversion recursesubdirs
+Source: "..\..\cleanup\*"; DestDir: "{app}\cleanup"; Flags: ignoreversion recursesubdirs
 Source: "..\..\config\*"; DestDir: "{app}\config"; Flags: ignoreversion recursesubdirs
 Source: "..\..\create\*"; DestDir: "{app}\create"; Flags: ignoreversion recursesubdirs
-Source: "..\..\destroy\*"; DestDir: "{app}\destroy"; Flags: ignoreversion recursesubdirs
+Source: "..\..\remove\*"; DestDir: "{app}\remove"; Flags: ignoreversion recursesubdirs
 Source: "..\..\detach\*"; DestDir: "{app}\detach"; Flags: ignoreversion recursesubdirs
 Source: "..\..\init\*"; DestDir: "{app}\init"; Flags: ignoreversion recursesubdirs
 Source: "..\..\merge\*"; DestDir: "{app}\merge"; Flags: ignoreversion recursesubdirs
 Source: "..\..\move\*"; DestDir: "{app}\move"; Flags: ignoreversion recursesubdirs
-Source: "..\..\pull\*"; DestDir: "{app}\pull"; Flags: ignoreversion recursesubdirs
+Source: "..\..\fetch\*"; DestDir: "{app}\fetch"; Flags: ignoreversion recursesubdirs
 Source: "..\..\push\*"; DestDir: "{app}\push"; Flags: ignoreversion recursesubdirs
 Source: "..\..\select\*"; DestDir: "{app}\select"; Flags: ignoreversion recursesubdirs
 Source: "..\..\status\*"; DestDir: "{app}\status"; Flags: ignoreversion recursesubdirs
-Source: "..\..\switch\*"; DestDir: "{app}\switch"; Flags: ignoreversion recursesubdirs
+Source: "..\..\use\*"; DestDir: "{app}\use"; Flags: ignoreversion recursesubdirs
 Source: "..\..\top\*"; DestDir: "{app}\top"; Flags: ignoreversion recursesubdirs
+Source: "..\..\worktrees\*"; DestDir: "{app}\worktrees"; Flags: ignoreversion recursesubdirs
 
 ; GUI Application files
 Source: "..\..\.gui\btgui.py"; DestDir: "{app}\.gui"; Flags: ignoreversion

@@ -21,4 +21,4 @@ Steps
 
 See also
 --------
-attach, create, destroy, detach, pull, push, select, switch
+attach, create, remove, detach, fetch, push, select, use

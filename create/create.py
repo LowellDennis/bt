@@ -29,7 +29,7 @@ def create():
   global Opts, Prms, Repo, Branch, Worktree, Abstree, Commitish
 
   # Get command line information
-  Prms, Opts = ParseCommandLine({'repo': True}, 3)
+  Prms, Opts = ParseCommandLine({'repo': True, 'purpose': True}, 3)
   # DOES NOT RETURN if invalid options or parameters are found
 
   # Make sure required parameters are given
@@ -88,12 +88,18 @@ def create():
     ErrorMessage('Unable to create worktree')
     # DOES NOT RETURN
 
-  # Save resulting branch for destroy
-  name = os.path.join(Abstree, data.SETTINGS_DIRECTORY)
-  os.mkdir(name)
-  name = os.path.join(name, 'branch')
-  with open(name, 'w') as file:
+  # Save resulting branch for remove
+  settings_dir = os.path.join(Abstree, data.SETTINGS_DIRECTORY)
+  os.mkdir(settings_dir)
+  branch_file = os.path.join(settings_dir, 'branch')
+  with open(branch_file, 'w') as file:
     file.write(Branch)
+  
+  # Save purpose if provided
+  if Opts['purpose']:
+    purpose_file = os.path.join(settings_dir, 'purpose')
+    with open(purpose_file, 'w') as file:
+      file.write(Opts['purpose'])
 
   # Switch to newly created worktree
   PostBIOS([Abstree[0:2], 'cd {0}'.format(Abstree)])

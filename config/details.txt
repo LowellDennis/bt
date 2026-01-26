@@ -25,7 +25,7 @@ Steps
 
 See also
 --------
-attach, build, clean, create, destroy, detach, init, move, select, switch
+attach, build, cleanup, create, remove, detach, init, move, select, use
 
 Global Read-Only Settings
 -------------------------
@@ -35,7 +35,7 @@ repositories Path like list of supported repositories
              (Modified by attach and detach commands)
 worktree     Currently selected worktree     (Set by many commands)
 worktrees    List of supported worktrees
-             (Modified by create, destroy, and move commands)
+             (Modified by create, remove, and move commands)
 
 Local Read-Only Settings
 ------------------------

@@ -210,8 +210,8 @@ export function activate(context: vscode.ExtensionContext) {
 			await btRunner.runInTerminal('build', buildArgs);
 		}),
 		
-		vscode.commands.registerCommand('BIOSTool.clean', async (platform?: Platform) => {
-			await btRunner.runInTerminal('clean');
+		vscode.commands.registerCommand('BIOSTool.cleanup', async (platform?: Platform) => {
+			await btRunner.runInTerminal('cleanup');
 		}),
 		
 			vscode.commands.registerCommand('BIOSTool.config', async () => {
@@ -452,7 +452,7 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}),
 		
-		vscode.commands.registerCommand('BIOSTool.destroy', async () => {
+		vscode.commands.registerCommand('BIOSTool.remove', async () => {
 			try {
 				// Run bt to get list of worktrees
 				const output = await btRunner.runCommandCapture('config', ['worktrees']);
@@ -490,17 +490,17 @@ export function activate(context: vscode.ExtensionContext) {
 				});
 				
 				const selected = await vscode.window.showQuickPick(items, {
-					placeHolder: 'Select worktree to destroy'
+					placeHolder: 'Select worktree to remove'
 				});
 				
 				if (!selected) {
 					return;
 				}
 				
-				await btRunner.runInTerminal('destroy', [selected.path]);
+				await btRunner.runInTerminal('remove', [selected.path]);
 				platformProvider.refresh();
 			} catch (err) {
-				vscode.window.showErrorMessage(`Failed to destroy worktree: ${err}`);
+				vscode.window.showErrorMessage(`Failed to remove worktree: ${err}`);
 			}
 		}),
 		
@@ -508,12 +508,12 @@ export function activate(context: vscode.ExtensionContext) {
 			await btRunner.runInTerminal('status');
 		}),
 		
-		vscode.commands.registerCommand('BIOSTool.switch', async () => {
+		vscode.commands.registerCommand('BIOSTool.use', async () => {
 			try {
-				// Run bt switch with no args to get list of workspaces
-				const output = await btRunner.runCommandCapture('switch', []);
+				// Run bt use with no args to get list of workspaces
+				const output = await btRunner.runCommandCapture('use', []);
 				
-				// Parse output - bt switch shows repositories and worktrees
+				// Parse output - bt use shows repositories and worktrees
 				const lines = output.split('\n');
 				const items: Array<{label: string, description: string, path: string, isCurrent: boolean}> = [];
 				
@@ -615,12 +615,12 @@ export function activate(context: vscode.ExtensionContext) {
 					}
 				}
 			} catch (err) {
-				vscode.window.showErrorMessage(`Failed to switch: ${err}`);
+				vscode.window.showErrorMessage(`Failed to use workspace: ${err}`);
 			}
 		}),
 		
-		vscode.commands.registerCommand('BIOSTool.pull', async () => {
-			await btRunner.runInTerminal('pull');
+		vscode.commands.registerCommand('BIOSTool.fetch', async () => {
+			await btRunner.runInTerminal('fetch');
 			platformProvider.refresh();
 		}),
 		
@@ -719,9 +719,7 @@ export function activate(context: vscode.ExtensionContext) {
 		
 		vscode.commands.registerCommand('BIOSTool.selectPlatform', async (platform: Platform) => {
 			if (platform) {
-				await btRunner.runCommand('switch', [platform.name]);
-				platformProvider.refresh();
-				statusBar.updatePlatform();
+			await btRunner.runCommand('use', [platform.name]);
 			}
 		}),
 		

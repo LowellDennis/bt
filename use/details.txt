@@ -1,10 +1,10 @@
 Description
 -----------
-Switch to a different BIOS repository or worktree.
+Use a different BIOS repository or worktree.
 
 Usage
 -----
-bt switch [<path>]
+bt use [<path>]
    path: Path of the worktree or repository to which to switch
          If path is not given shows a list of available repositories and worktrees
    NOTE: A partial path may be used as long as it is unique.
@@ -22,4 +22,4 @@ Steps
 
 See also
 --------
-attach, detach, create, destroy
+attach, detach, create, remove, worktrees

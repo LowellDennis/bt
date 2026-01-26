@@ -4,7 +4,7 @@ Deletes a BIOS worktree and removes it from the list of worktrees.
 
 Usage
 -----
-bt destroy /keep [path] /yes
+bt remove /keep [path] /yes
    /keep: Do not delete the branch associated with the worktree.
    /yes:  Proceed with out asking for permission
    path:  Path associated with BIOS worktree to be deleted
@@ -28,4 +28,4 @@ Steps
 
 See also
 --------
-create, pull, push, switch
+create, fetch, push, use, worktrees

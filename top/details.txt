@@ -16,4 +16,4 @@ Steps
 
 See also
 --------
-attach, create, destroy, detach, select, switch
+attach, create, remove, detach, select, use

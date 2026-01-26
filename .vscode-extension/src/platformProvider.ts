@@ -87,19 +87,19 @@ export class PlatformTreeProvider implements vscode.TreeDataProvider<BTCommand |
         return [
             new BTCommand('attach', 'Attach', 'Attach a repository', 'add'),
             new BTCommand('build', 'Build', 'Build current platform', 'gear'),
-            new BTCommand('clean', 'Clean', 'Clean build artifacts', 'trash'),
+            new BTCommand('cleanup', 'Cleanup', 'Cleanup build artifacts', 'trash'),
             new BTCommand('config', 'Config', 'View/change configuration settings', 'settings-gear'),
             new BTCommand('create', 'Create', 'Create a new worktree', 'new-folder'),
-            new BTCommand('destroy', 'Destroy', 'Destroy a worktree', 'trash'),
+            new BTCommand('remove', 'Remove', 'Remove a worktree', 'trash'),
             new BTCommand('detach', 'Detach', 'Detach a repository', 'remove'),
             new BTCommand('init', 'Init', 'Initialize platform settings', 'symbol-namespace'),
             new BTCommand('merge', 'Merge', 'Merge updates from upstream', 'git-merge'),
             new BTCommand('move', 'Move', 'Move BIOS worktree', 'file-symlink-directory'),
-            new BTCommand('pull', 'Pull', 'Update from remote location', 'cloud-download'),
+            new BTCommand('fetch', 'Fetch', 'Fetch from remote location', 'cloud-download'),
             new BTCommand('push', 'Push', 'Push updates to remote', 'cloud-upload'),
             new BTCommand('select', 'Select', 'Select BIOS repository', 'folder-opened'),
             new BTCommand('status', 'Status', 'Show repository status', 'list-tree'),
-            new BTCommand('switch', 'Switch', 'Switch to different worktree', 'arrow-swap'),
+            new BTCommand('use', 'Use', 'Use different worktree', 'arrow-swap'),
             new BTCommand('top', 'Top', 'Go to repository top', 'arrow-up')
         ];
     }

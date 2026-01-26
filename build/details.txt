@@ -39,4 +39,4 @@ Steps
 
 See also
 --------
-clean, config, init
+cleanup, config, init

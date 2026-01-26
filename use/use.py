@@ -14,9 +14,9 @@ from vcs      import GetVCSInfo, GetRepoFromWorktree, GetBranchFromWorktree, Get
 # Global variables
 Prms = None
 
-# Init command handler
+# Use command handler
 # returns 0 on success, DOES NOT RETURN otherwise
-def switch():
+def use():
   # Get command line information
   prms, opts = ParseCommandLine({'platform': False}, 1)
   # DOES NOT RETURN if invalid options or parameters are found

@@ -1,0 +1,26 @@
+Description
+-----------
+Lists all worktrees with their repository, branch, and purpose.
+
+Usage
+-----
+bt worktrees [<worktree>]
+   worktree: Optional full or partial path to a specific worktree.
+             If provided, shows detailed information for that worktree only.
+             If omitted, lists all worktrees with their information.
+
+Steps
+-----
+1. Validate command line arguments.
+   a. Error: if command line arguments are invalid!
+2. If no worktree parameter is provided:
+   a. Display all worktrees with their repository, branch, and purpose.
+   b. Mark the currently selected worktree with *.
+3. If a worktree parameter is provided:
+   a. Find the matching worktree from full or partial path.
+   b. Display detailed information about that worktree.
+   c. Error: if the worktree cannot be found!
+
+See also
+--------
+create, remove, use
