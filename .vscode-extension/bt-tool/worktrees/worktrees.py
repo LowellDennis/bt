@@ -3,6 +3,7 @@
 # Standard python modules
 import os
 import sys
+import textwrap
 
 # Local modules
 import data
@@ -39,43 +40,58 @@ def worktrees():
   # Are we showing all worktrees or just one?
   if len(prms) == 0:
     # Show all worktrees
-    vcs = 'git'
     print('')
     print('  Available worktrees (currently selected worktree has *)')
-    print('  vcs worktree, repository, branch, purpose')
-    print('  --- -----------------------------------------------')
+    print('')
     
     # Use cached worktree info from initialization (fast!)
     worktree_info = getattr(data.gbl, 'worktree_cache', None)
     
+    # Collect all data first to calculate column widths
+    rows = []
     if worktree_info:
-      # Use cached data - no git commands needed!
       for item in worktrees_list:
-        info = worktree_info.get(item, {})
-        repo = info.get('repo', '')
-        branch = info.get('branch', '')
         purpose = GetWorktreePurpose(item)
         star = '*' if item == data.gbl.worktree else ' '
-        print('{0} {1} {2}, {3}, {4}, {5}'.format(star, vcs, item, repo, branch, purpose))
+        rows.append((star, item, purpose if purpose else '(no purpose set)'))
     else:
-      # Fallback: get info in single git command
+      # Fallback
       worktree_info = GetAllWorktreeInfo(worktrees_list)
-      if worktree_info:
-        for item in worktrees_list:
-          info = worktree_info.get(item, {})
-          repo = info.get('repo', GetRepoFromWorktree(item))
-          branch = info.get('branch', GetBranchFromWorktree(item))
-          purpose = GetWorktreePurpose(item)
-          star = '*' if item == data.gbl.worktree else ' '
-          print('{0} {1} {2}, {3}, {4}, {5}'.format(star, vcs, item, repo, branch, purpose))
+      for item in worktrees_list:
+        purpose = GetWorktreePurpose(item)
+        star = '*' if item == data.gbl.worktree else ' '
+        rows.append((star, item, purpose if purpose else '(no purpose set)'))
+    
+    # Calculate maximum worktree path width
+    max_worktree_len = max(len(row[1]) for row in rows) if rows else 0
+    # Ensure minimum width for header
+    max_worktree_len = max(max_worktree_len, len('Worktree'))
+    
+    # Print header
+    print(f'  {"Worktree":<{max_worktree_len}}  Purpose')
+    print(f'  {"-" * max_worktree_len}  -------')
+    
+    # Print table with aligned columns and wrapped purpose text
+    # Calculate indent for wrapped lines: '* ' (2 chars) + worktree width + '  ' (2 chars)
+    indent = ' ' * (2 + max_worktree_len + 2)
+    
+    for star, worktree, purpose in rows:
+      # First line with worktree and start of purpose
+      first_line_width = 100 - (2 + max_worktree_len + 2)  # Total 100 chars, minus prefix
+      
+      if len(purpose) <= first_line_width:
+        # Purpose fits on one line
+        print(f'{star} {worktree:<{max_worktree_len}}  {purpose}')
       else:
-        # Final fallback to original method
-        for item in worktrees_list:
-          repo = GetRepoFromWorktree(item)
-          branch = GetBranchFromWorktree(item)
-          purpose = GetWorktreePurpose(item)
-          star = '*' if item == data.gbl.worktree else ' '
-          print('{0} {1} {2}, {3}, {4}, {5}'.format(star, vcs, item, repo, branch, purpose))
+        # Need to wrap - use textwrap
+        wrapped_lines = textwrap.wrap(purpose, width=first_line_width)
+        # Print first line with worktree
+        print(f'{star} {worktree:<{max_worktree_len}}  {wrapped_lines[0]}')
+        # Print continuation lines with indent
+        for line in wrapped_lines[1:]:
+          print(f'{indent}{line}')
+    
+    print('')
   else:
     # Show detailed info for a specific worktree
     given = prms[0]

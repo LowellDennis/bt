@@ -171,14 +171,21 @@ The main program is 'bt.cmd'
 ### Version History ###
 | Version | Explanation                                                                            |
 |---------|----------------------------------------------------------------------------------------|
-| V1.0    | Major command rename for better abbreviation support and worktree purpose tracking    |
+| V1.0    | Major command rename, Jump Station sync, and improved table formatting                |
 |         | - Renamed destroy → remove (single letter 'r')                                         |
 |         | - Renamed switch → use (single letter 'u')                                             |
 |         | - Renamed clean → cleanup (two letters 'cl')                                           |
 |         | - Renamed pull → fetch (single letter 'f')                                             |
-|         | - Added new 'worktrees' command (single letter 'w') to list all worktrees with info   |
-|         | - Added /purpose option to create command for tracking worktree purposes               |
-|         | - Now 10 commands have single-letter abbreviations (up from 3)                         |
+|         | - Added 'jump' command for syncing to Jump Station for remote debugging               |
+|         |   * Uses git checkout on remote for fast sync (instant with large repos)              |
+|         |   * Robocopy fallback for initial sync or when git unavailable                        |
+|         |   * /check option validates network, authentication, paths, and git commits           |
+|         |   * Automatic UNC path conversion from local paths                                    |
+|         | - Added 'worktrees' command (single letter 'w') to list all worktrees with info       |
+|         | - Added purpose field for worktrees (create /purpose or config purpose)               |
+|         | - Improved table formatting with aligned columns and headers for 'use' and 'worktrees'|
+|         | - Text wrapping with alignment for long purpose descriptions                           |
+|         | - Now 11 commands have single/double-letter abbreviations (up from 3)                 |
 |         | - Updated all documentation, GUI, and VS Code extension                                |
 |---------|----------------------------------------------------------------------------------------|
 | V0.9	  | Bug fixes and Linux/macOS improvements                                                 |
