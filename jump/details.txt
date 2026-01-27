@@ -1,53 +1,88 @@
 Sync source and build artifacts to a Jump Station for remote debugging
 
 The jump command synchronizes your local worktree source code and build 
-artifacts to a remote Jump Station using robocopy. This is useful when you
-need to debug firmware on a remote server using tools like Intel ITP that
-require access to source files and build artifacts (.map, .cod, etc.).
+artifacts to a remote Jump Station using a mapped drive and RDP workflow.
+This is useful when you need to debug firmware on a remote server using 
+tools like Intel ITP that require access to source files and build artifacts 
+(.map, .cod, etc.).
 
 USAGE:
-  bt jump [/check]
+  bt jump [/source-only]
 
 OPTIONS:
-  /check - Verify jump station configuration and connectivity without syncing
-           - Tests network connectivity to jump station
-           - Verifies destination path is accessible with write permissions
-           - Counts files that need to be transferred
-           - Compares local and remote git commits
+  /source-only - Skip build artifacts (ITP debug files), sync source code only
 
 CONFIGURATION:
-  The 'jumpstation' local setting must be configured first with the format:
-    <ip-or-hostname>;<username>;<password>;<remote-path>
+  The 'jumpstation' local setting must be configured with the destination path:
+    <remote-path>
   
-  The remote-path is a local path on the Jump Station system (e.g., C:\path\to\folder)
-  It will be automatically converted to a UNC path (e.g., \\host\C$\path\to\folder)
+  The remote-path is an absolute path on the Jump Station where files will sync.
   
   Example:
-    bt config jumpstation "jumpstation.hpe.com;lowell;MyPassword123;C:\Users\lowell\Desktop\GNext"
+    bt config jumpstation "C:\Users\Administrator\Desktop\GNext"
+
+WORKFLOW:
+  1. Run 'bt jump' on your development machine
+     - Creates jump_sync.ps1 and jump_sync.zip in repository root
+     - Packages modified/uncommitted source files
+     - Packages Intel ITP debug files (.map, .cod, .efi, .pdb, etc.)
+     - Embeds local git commit ID in the script
   
-  This will sync to: \\jumpstation.hpe.com\C$\Users\lowell\Desktop\GNext
+  2. Connect to Jump Station via RDP (e.g., using Remote Desktop or RDCMan)
+  
+  3. Execute the PowerShell script from your mapped drive:
+     Example: D:\HPE\Dev\ROMS\G12\jump_sync.ps1
+     (Replace D: with your mapped drive letter)
+  
+  4. Script automatically:
+     - Fetches latest git commits
+     - Checks if remote commit matches local
+     - Stashes uncommitted changes (if any)
+     - Resets to local commit (if needed)
+     - Copies zip file from mapped drive
+     - Extracts all files with progress display
+     - Cleans up temporary files
 
 BEHAVIOR:
-  - Syncs all source files from the current worktree
-  - Syncs build artifacts for the configured platform (.bt/platform setting)
-  - Uses robocopy with incremental sync (only changed files)
-  - Excludes: .git/, __pycache__/, *.pyc, and intermediate build files
+  - Compares local git commit with remote (embedded in script)
+  - Only syncs git if commits differ
+  - Uses ZIP_STORED (no compression) for fast zip creation
+  - Tracks last sync time to skip unchanged build artifacts
+  - Uses 7-Zip for extraction if available (faster with progress)
+  - Falls back to PowerShell Expand-Archive if 7-Zip not found
+
+ADVANTAGES OVER SSH APPROACH:
+  - No SSH server configuration needed
+  - No password authentication complexity
+  - No network connectivity issues
+  - Uses existing RDP connection and mapped drives
+  - Full visibility into sync progress
+  - Manual control - you decide when to sync
+
+REQUIREMENTS:
+  - RDP access to the Jump Station
+  - Local drive mapped on Jump Station (e.g., \\devmachine\D$ → D:)
+  - Git installed on Jump Station
+  - Optional: 7-Zip on Jump Station (for faster extraction with progress)
 
 EXAMPLES:
-  # Configure jump station (use caret ^ to escape ! in cmd.exe)
-  bt config jumpstation "jumpstation.hpe.com;lowell;Pass123;C:\Users\lowell\Desktop\GNext"
+  # Configure jump station destination
+  bt config jumpstation "C:\Users\Administrator\Desktop\GNext"
 
-  # Verify configuration before first sync
-  bt jump /check
-
-  # Perform the sync
+  # Generate sync files (creates jump_sync.ps1 and jump_sync.zip in repo root)
   bt jump
+
+  # Sync source only (skip 18K+ build artifacts)
+  bt jump /source-only
+
+  # On Jump Station via RDP, execute:
+  D:\HPE\Dev\ROMS\G12\jump_sync.ps1
 
 NOTE:
   - Sync is one-way only (local → Jump Station)
-  - Requires network connectivity to the Jump Station
-  - Large initial sync; subsequent syncs are incremental and much faster
   - Platform must be set (.bt/platform) to sync build artifacts
-  - Use /check to validate setup before syncing large amounts of data
+  - First sync may take longer; subsequent syncs skip unchanged files
+  - Multiple repositories can have different jump station configurations
 
 See also: config, build
+

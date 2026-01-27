@@ -5,6 +5,11 @@ import os
 import sys
 import subprocess
 import socket
+import tempfile
+import zipfile
+import shutil
+import json
+import time
 
 # Local modules
 import data
@@ -12,42 +17,22 @@ from cmdline  import ParseCommandLine
 from error    import ErrorMessage
 from misc     import GetJumpStationInfo
 
-# Jump command handler - syncs source and build artifacts to Jump Station
+# Jump command handler - syncs source and build artifacts to Jump Station using mapped drive + RDP
 # returns 0 on success, DOES NOT RETURN otherwise
 def jump():
   # Get command line information
-  prms, opts = ParseCommandLine({'check': False}, 1)
+  prms, opts = ParseCommandLine({'source-only': False}, 1)
   # DOES NOT RETURN if invalid options or parameters are found
 
   # Get jumpstation configuration
   jump_info = GetJumpStationInfo()
   if not jump_info:
     ErrorMessage('Jump station not configured.\n' +
-                 'Set using: bt config jumpstation <host>;<user>;<password>;<destination>')
+                 'Set using: bt config jumpstation <destination-path>')
     # DOES NOT RETURN
 
-  # Convert local path on remote system to UNC path
-  # E.g., "C:\Users\Admin\Desktop\GNext" -> "\\10.14.38.211\C$\Users\Admin\Desktop\GNext"
+  # Remote path on the jump station
   remote_path = jump_info['dest']
-  host = jump_info['host']
-  
-  # Check if it's already a UNC path
-  if remote_path.startswith('\\\\'):
-    destination = remote_path
-  else:
-    # Convert local path to UNC path (e.g., C:\path -> \\host\C$\path)
-    if len(remote_path) >= 2 and remote_path[1] == ':':
-      drive = remote_path[0]
-      path_without_drive = remote_path[2:].lstrip('\\')
-      destination = f'\\\\{host}\\{drive}$\\{path_without_drive}'
-    else:
-      ErrorMessage(f'Invalid remote path format: {remote_path}\n' +
-                   'Expected: C:\\path\\to\\folder or \\\\host\\share\\path')
-      # DOES NOT RETURN
-  
-  # If /check option, verify configuration and connectivity
-  if opts['check']:
-    return check_jumpstation(jump_info, destination)
   
   # Verify we have a worktree
   if not data.gbl.worktree:
@@ -66,448 +51,245 @@ def jump():
   
   # Build directory (if platform is set)
   build_dir = None
-  if platform:
+  if platform and not opts['source-only']:
     # Platform format: HpeProductLine\Volume\HpPlatforms\U68Pkg
-    build_dir = os.path.join(source_dir, 'Build', platform.replace('/', os.sep))
+    # Build directory uses only the package name (last component)
+    pkg_name = platform.replace('/', '\\').split('\\')[-1]
+    build_dir = os.path.join(source_dir, 'Build', pkg_name)
     if not os.path.exists(build_dir):
       print(f'  Warning: Build directory not found: {build_dir}')
       print(f'  Will sync source only. Build the project first with: bt build')
       print('')
       build_dir = None
+  elif opts['source-only']:
+    print('  /source-only: Skipping build artifacts (ITP debug files)')
+    print('')
 
-  # Confirm sync
+  # Display sync information
   print('')
-  print('Jump Station Sync')
-  print('=================')
+  print('Jump Station Sync (Mapped Drive + RDP)')
+  print('=' * 60)
   print(f'Source:      {source_dir}')
   if build_dir:
     print(f'Build:       {build_dir}')
-  print(f'Destination: {destination}')
+  print(f'Destination: {remote_path}')
   print('')
+
+  # Create sync files in repository root (allows multiple repos with different jump stations)
+  temp_command_file = os.path.join(source_dir, 'jump_sync.ps1')
+  temp_zip_file = os.path.join(source_dir, 'jump_sync.zip')
+  completion_marker = os.path.join(source_dir, '.bt_jump_completed.json')
   
-  # Authenticate with the network share
-  # Extract the share path (e.g., \\host\C$ from \\host\C$\path\to\folder)
-  parts = destination.lstrip('\\').split('\\')
-  if len(parts) >= 2:
-    share_path = f'\\\\{parts[0]}\\{parts[1]}'
-    
-    print(f'Authenticating to {share_path}...')
-    
-    # Get credentials
-    user = jump_info['user']
-    pswd = jump_info['pswd']
-    host_from_dest = parts[0]
-    
-    # Use net use to authenticate
-    net_use_cmd = ['net', 'use', share_path, f'/user:{user}', pswd]
-    
+  # Check for previous successful sync
+  last_sync_commit = None
+  last_sync_time = 0
+  if os.path.exists(completion_marker):
     try:
-      result = subprocess.run(net_use_cmd, capture_output=True, text=True, timeout=10)
-      if result.returncode == 0 or 'already in use' in result.stderr.lower() or 'multiple connections' in result.stderr.lower():
-        print(f'  Network share authenticated')
-        print('')
-      else:
-        ErrorMessage(f'Authentication failed: {result.stderr.strip()}')
-        # DOES NOT RETURN
+      with open(completion_marker, 'r') as f:
+        completion_data = json.load(f)
+        last_sync_commit = completion_data.get('commit')
+        timestamp_str = completion_data.get('timestamp')
+        if timestamp_str:
+          # Parse ISO format timestamp
+          from datetime import datetime
+          last_sync_dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+          last_sync_time = last_sync_dt.timestamp()
+        print(f'Previous sync: {completion_data.get("timestamp", "unknown")} ({completion_data.get("files_synced", 0)} files)')
     except Exception as e:
-      ErrorMessage(f'Authentication error: {str(e)}')
-      # DOES NOT RETURN
-
-  # Robocopy exclude patterns
-  exclude_dirs = [
-    '.git',
-    '__pycache__',
-    '.vscode',
-    '.history',
-    'node_modules',
-    '.venv'
-  ]
+      print(f'Warning: Could not read previous sync data: {e}')
   
-  exclude_files = [
-    '*.pyc',
-    '*.pyo',
-    '*.pyd',
-    '.gitignore',
-    '.gitattributes'
-  ]
-
-  # Check if remote has git repository
-  remote_git = os.path.join(destination, '.git')
-  use_git_sync = False
+  # Initialize PowerShell script for execution on jump station
+  with open(temp_command_file, 'w', newline='\n') as f:
+    f.write('# PowerShell script for BT Jump Station sync\n')
+    f.write('# Execute this script ON THE JUMP STATION via RDP\n')
+    f.write('$ErrorActionPreference = "Stop"\n\n')
+    f.write(f'# Navigate to destination directory\n')
+    f.write(f'Set-Location "{remote_path}"\n\n')
+    f.write('# Cleanup any leftover files from previous sync\n')
+    f.write('if (Test-Path jump_sync.zip) { Remove-Item jump_sync.zip -Force }\n\n')
+  
+  # Initialize zip file
+  # Use ZIP_STORED (no compression) for much faster zip creation
+  # Files transfer only slightly slower but zip creation is 10x+ faster
+  zipf = zipfile.ZipFile(temp_zip_file, 'w', zipfile.ZIP_STORED)
+  
+  # Step 1: Get local git commit-id
+  print('Getting local git commit...')
   local_commit = None
-  
-  if os.path.exists(remote_git):
-    # Get local commit
-    try:
-      result = subprocess.run(['git', 'rev-parse', 'HEAD'], 
-                            cwd=source_dir, capture_output=True, text=True, timeout=5)
-      if result.returncode == 0:
-        local_commit = result.stdout.strip()
-        use_git_sync = True
-        print('Remote has git repository - will use git to sync')
-        print(f'  Target commit: {local_commit[:12]}')
-        print('')
-      else:
-        print('Warning: Could not get local git commit, falling back to robocopy')
-        print('')
-    except Exception as e:
-      print(f'Warning: Git check failed: {str(e)}, falling back to robocopy')
-      print('')
-  else:
-    print('Remote has no git repository - will use robocopy for initial sync')
-    print('')
-
-  # Sync source files
-  if use_git_sync:
-    # Use git to sync - much faster than robocopy
-    print('Syncing source files using git...')
-    print('')
-    
-    try:
-      # Git doesn't work well with UNC paths, use pushd to map temporarily
-      # Run git commands via cmd.exe with pushd/popd
-      
-      # Check for uncommitted changes on remote
-      print('  Checking remote repository status...')
-      print(f'  Command: pushd "{destination}" && git status --porcelain && popd')
-      git_status_cmd = f'pushd "{destination}" && git status --porcelain && popd'
-      result = subprocess.run(['cmd', '/c', git_status_cmd],
-                            capture_output=True, text=True, timeout=30)
-      
-      if result.returncode != 0:
-        print(f'  Warning: Could not check remote git status')
-        if result.stderr.strip():
-          print(f'  {result.stderr.strip()}')
-        print('  Falling back to robocopy...')
-        print('')
-        use_git_sync = False
-      elif result.stdout.strip():
-        # Remote has uncommitted changes - stash them
-        print('  Remote has uncommitted changes - stashing...')
-        print(f'  Command: pushd "{destination}" && git stash && popd')
-        git_stash_cmd = f'pushd "{destination}" && git stash && popd'
-        result = subprocess.run(['cmd', '/c', git_stash_cmd],
-                              capture_output=False, text=True, timeout=30)
-        if result.returncode != 0:
-          print(f'  Warning: Could not stash changes')
-          print('  Falling back to robocopy...')
-          print('')
-          use_git_sync = False
-        else:
-          print('  ✓ Changes stashed')
-      else:
-        print('  ✓ Working tree clean')
-      
-      if use_git_sync:
-        # Checkout the target commit
-        print('')
-        print(f'  Switching remote to commit {local_commit[:12]}...')
-        print(f'  Command: pushd "{destination}" && git checkout {local_commit} && popd')
-        print('')
-        print('  --- Git Output (from remote) ---')
-        git_checkout_cmd = f'pushd "{destination}" && git checkout {local_commit} && popd'
-        result = subprocess.run(['cmd', '/c', git_checkout_cmd],
-                              capture_output=False, text=True, timeout=300)
-        print('  --- End Git Output ---')
-        
-        if result.returncode == 0:
-          print('')
-          print('  ✓ Source sync complete (git checkout)')
-          print('')
-        else:
-          print('')
-          print(f'  Warning: Git checkout failed (exit code {result.returncode})')
-          print('  Falling back to robocopy...')
-          print('')
-          use_git_sync = False
-    
-    except Exception as e:
-      print(f'  Warning: Git sync failed: {str(e)}')
-      print('  Falling back to robocopy...')
-      print('')
-      use_git_sync = False
-  
-  if not use_git_sync:
-    # Fallback to robocopy
-    print('Syncing source files using robocopy...')
-    print('')
-    
-    # Build robocopy command for source
-    robocopy_cmd = ['robocopy', source_dir, destination, '/E', '/MT:8', '/R:2', '/W:5']
-    
-    # Add exclude directories
-    for exc_dir in exclude_dirs:
-      robocopy_cmd.extend(['/XD', exc_dir])
-    
-    # Add exclude files
-    for exc_file in exclude_files:
-      robocopy_cmd.extend(['/XF', exc_file])
-    
-    # Add progress indicators
-    robocopy_cmd.extend(['/NP', '/NDL', '/NFL'])
-  
-  if not use_git_sync:
-    # Run robocopy for source
-    try:
-      result = subprocess.run(robocopy_cmd, capture_output=False, text=True)
-      
-      # Robocopy return codes:
-      # 0 = No files copied, no failures, no mismatches
-      # 1 = Files copied successfully
-      # 2 = Extra files or directories detected
-      # 3 = Files copied and extra files detected
-      # 4+ = Errors occurred
-      if result.returncode >= 8:
-        ErrorMessage(f'Source sync failed with robocopy error code {result.returncode}')
-        # DOES NOT RETURN
-      
-      print('')
-      print('  Source sync complete')
-      print('')
-      
-    except Exception as e:
-      ErrorMessage(f'Failed to run robocopy: {str(e)}')
-      # DOES NOT RETURN
-
-  # Sync build artifacts if available
-  if build_dir:
-    print('Syncing build artifacts...')
-    print('')
-    
-    build_dest = os.path.join(destination, 'Build', platform)
-    
-    # Build robocopy command for build artifacts
-    # Include specific file types for debugging
-    build_cmd = [
-      'robocopy', build_dir, build_dest,
-      '/E', '/MT:8', '/R:2', '/W:5',
-      '/NP', '/NDL', '/NFL'
-    ]
-    
-    try:
-      result = subprocess.run(build_cmd, capture_output=False, text=True)
-      
-      if result.returncode >= 8:
-        ErrorMessage(f'Build artifacts sync failed with robocopy error code {result.returncode}')
-        # DOES NOT RETURN
-      
-      print('')
-      print('  Build artifacts sync complete')
-      print('')
-      
-    except Exception as e:
-      ErrorMessage(f'Failed to sync build artifacts: {str(e)}')
-      # DOES NOT RETURN
-
-  print('=' * 60)
-  print('Jump Station sync completed successfully!')
-  print('=' * 60)
-  print('')
-
-  return 0
-
-# Check Jump Station connectivity and configuration
-# jump_info: Dictionary with jump station configuration
-# destination: The converted UNC destination path
-# returns 0 on success, DOES NOT RETURN otherwise
-def check_jumpstation(jump_info, destination):
-  host = jump_info['host']
-  user = jump_info['user']
-  remote_path = jump_info['dest']
-  
-  print('')
-  print('Jump Station Configuration Check')
-  print('=' * 60)
-  print(f'Host:        {host}')
-  print(f'Username:    {user}')
-  print(f'Remote Path: {remote_path}')
-  print(f'UNC Path:    {destination}')
-  print('')
-  
-  # Check 1: Verify IP/hostname is reachable
-  print('Checking network connectivity...')
-  try:
-    # Try to resolve hostname
-    ip_address = socket.gethostbyname(host)
-    print(f'  ✓ Resolved {host} to {ip_address}')
-    
-    # Try to ping (optional, may fail due to firewall)
-    result = subprocess.run(['ping', '-n', '1', '-w', '1000', host], 
-                          capture_output=True, text=True, timeout=5)
-    if result.returncode == 0:
-      print(f'  ✓ Host is reachable (ping successful)')
-    else:
-      print(f'  ⚠ Ping failed (may be blocked by firewall, but host resolved)')
-  except socket.gaierror:
-    print(f'  ✗ Failed to resolve hostname: {host}')
-    print('')
-    return 1
-  except Exception as e:
-    print(f'  ⚠ Network check warning: {str(e)}')
-  
-  print('')
-  
-  # Check 2: Verify destination path is accessible
-  print('Checking destination path accessibility...')
-  
-  # First, try to authenticate with the network share
-  # Extract the share path (e.g., \\host\C$ from \\host\C$\path\to\folder)
-  parts = destination.lstrip('\\').split('\\')
-  if len(parts) >= 2:
-    share_path = f'\\\\{parts[0]}\\{parts[1]}'
-    
-    print(f'  Authenticating to {share_path}...')
-    
-    # Use net use to authenticate
-    pswd = jump_info['pswd']
-    net_use_cmd = ['net', 'use', share_path, f'/user:{user}', pswd]
-    
-    try:
-      result = subprocess.run(net_use_cmd, capture_output=True, text=True, timeout=10)
-      if result.returncode == 0 or 'already in use' in result.stderr.lower() or 'multiple connections' in result.stderr.lower():
-        print(f'  ✓ Network share authenticated')
-      else:
-        print(f'  ✗ Authentication failed: {result.stderr.strip()}')
-        print('')
-        return 1
-    except Exception as e:
-      print(f'  ✗ Authentication error: {str(e)}')
-      print('')
-      return 1
-  
-  if not os.path.exists(destination):
-    print(f'  ✗ Destination path not accessible: {destination}')
-    print(f'  Possible issues:')
-    print(f'    - Network path not mounted')
-    print(f'    - Incorrect credentials')
-    print(f'    - Path does not exist on remote system')
-    print('')
-    return 1
-  else:
-    print(f'  ✓ Destination path is accessible')
-    
-    # Try to write a test file to verify write permissions
-    test_file = os.path.join(destination, '.bt_jump_test')
-    try:
-      with open(test_file, 'w') as f:
-        f.write('test')
-      os.remove(test_file)
-      print(f'  ✓ Write permissions verified')
-    except Exception as e:
-      print(f'  ✗ Cannot write to destination: {str(e)}')
-      print('')
-      return 1
-  
-  print('')
-  
-  # Check 3: Verify we're in a worktree
-  if not data.gbl.worktree:
-    print('Not in a worktree - cannot check file counts or git status')
-    print('Navigate to a worktree to perform full check')
-    print('')
-    return 0
-  
-  source_dir = data.gbl.worktree
-  platform = data.lcl.GetItem('platform')
-  
-  # Check 4: Use git to efficiently determine what needs syncing
-  print('Checking git commit status...')
-  
-  local_commit = None
-  remote_commit = None
-  commits_match = False
-  
-  # Get local commit
   try:
     result = subprocess.run(['git', 'rev-parse', 'HEAD'], 
                           cwd=source_dir, capture_output=True, text=True, timeout=5)
     if result.returncode == 0:
       local_commit = result.stdout.strip()
-      print(f'  Local commit:  {local_commit[:12]}')
+      print(f'  Local commit: {local_commit[:12]}')
       
-      # Check if remote has .git directory
-      remote_git = os.path.join(destination, '.git')
-      if os.path.exists(remote_git):
-        # Try to read remote commit - git often fails with UNC paths
-        # Use git --git-dir to specify the .git location directly
-        result = subprocess.run(['git', '--git-dir', remote_git, '--work-tree', destination, 'rev-parse', 'HEAD'],
-                              capture_output=True, text=True, timeout=5)
-        if result.returncode == 0:
-          remote_commit = result.stdout.strip()
-          print(f'  Remote commit: {remote_commit[:12]}')
-          
-          if local_commit == remote_commit:
-            print(f'  ✓ Local and remote are at the same commit')
-            commits_match = True
-          else:
-            print(f'  ⚠ Local and remote commits differ')
-            print(f'      Will use git to switch remote to local commit')
-        else:
-          # Git failed - likely due to UNC path issues
-          print(f'  ⚠ Could not read remote git commit')
-          print(f'      Will use robocopy for sync')
-          print(f'      (Git may not work with UNC paths: {destination})')
-      else:
-        print(f'  ⚠ Remote has no git repository')
-        print(f'      Will use robocopy for initial sync')
-        print(f'      (This is normal for first sync)')
+      # Add git commands to script (will execute on jump station)
+      with open(temp_command_file, 'a', newline='\n') as f:
+        f.write('# Sync git commit with local repository\n')
+        f.write('if (Test-Path .git) {\n')
+        f.write('  $remoteCommit = git rev-parse HEAD 2>$null\n')
+        f.write(f'  if ($remoteCommit -ne "{local_commit}") {{\n')
+        f.write(f'    Write-Host "Syncing git to commit {local_commit[:12]}..."\n')
+        f.write('    \n')
+        f.write('    # Fetch latest commits\n')
+        f.write('    Write-Host "  Fetching latest commits..."\n')
+        f.write('    git fetch --all 2>&1 | Out-Null\n')
+        f.write('    \n')
+        f.write('    # Check for uncommitted changes\n')
+        f.write('    $status = git status --porcelain\n')
+        f.write('    if ($status) {\n')
+        f.write('      Write-Host "  Stashing uncommitted changes..."\n')
+        f.write('      git stash\n')
+        f.write('    }\n')
+        f.write('    \n')
+        f.write(f'    Write-Host "  Resetting to {local_commit[:12]}..."\n')
+        f.write(f'    git reset --hard {local_commit}\n')
+        f.write('  } else {\n')
+        f.write(f'    Write-Host "Git commit already at {local_commit[:12]}"\n')
+        f.write('  }\n')
+        f.write('} else {\n')
+        f.write('  Write-Host "No git repository found - skipping git sync"\n')
+        f.write('}\n\n')
     else:
-      print(f'  ⚠ Could not read local git commit')
+      print('  Warning: Could not get local git commit')
   except Exception as e:
-    print(f'  ⚠ Git check failed: {str(e)}')
-  
+    print(f'  Warning: Git check failed: {str(e)}')
   print('')
   
-  # Check 5: Analyze files to sync using git
-  print('Analyzing files to sync...')
-  
-  if commits_match:
-    # Commits match - only check for local modifications
-    try:
-      # Check for modified, added, or untracked files
-      result = subprocess.run(['git', 'status', '--porcelain'], 
-                            cwd=source_dir, capture_output=True, text=True, timeout=10)
-      if result.returncode == 0:
-        status_lines = [line for line in result.stdout.strip().split('\n') if line]
+  # Step 4: Check local git status and add modified/uncommitted changes to zip
+  print('Checking for modified/uncommitted files...')
+  changed_files = []
+  try:
+    result = subprocess.run(['git', 'status', '--porcelain'],
+                          cwd=source_dir, capture_output=True, text=True, timeout=10)
+    if result.returncode == 0:
+      status_lines = [line for line in result.stdout.strip().split('\n') if line]
+      if status_lines:
+        for line in status_lines:
+          # Format: "XY filename" where X and Y are status codes (2 chars), then space(s), then filename
+          # Split to get just the filename part (everything after the status codes)
+          if len(line) > 3:
+            # The first 2 characters are status codes, skip them and any following whitespace
+            file_path = line[2:].lstrip()
+            full_path = os.path.join(source_dir, file_path)
+              
+            # Only add existing files (skip deleted files)
+            if os.path.exists(full_path) and os.path.isfile(full_path):
+              changed_files.append(file_path)
+              # Add to zip with proper path structure
+              zipf.write(full_path, file_path)
         
-        if status_lines:
-          # Count different types of changes
-          modified = [l for l in status_lines if l.startswith(' M') or l.startswith('M')]
-          added = [l for l in status_lines if l.startswith('A') or l.startswith('??')]
-          
-          total_changes = len(status_lines)
-          print(f'  Source changes: {total_changes} modified/new files')
-          print(f'    - Modified: {len(modified)}')
-          print(f'    - New/Untracked: {len(added)}')
+        if changed_files:
+          print(f'  Found {len(changed_files)} modified/new source file(s)')
         else:
-          print(f'  ✓ No source file changes (commits match, working tree clean)')
+          print('  No local changes detected')
       else:
-        print(f'  ⚠ Could not check git status')
-    except Exception as e:
-      print(f'  ⚠ Git status check failed: {str(e)}')
-  else:
-    # Commits differ - will use git checkout
-    print(f'  Commits differ - will use git checkout on remote')
-    print(f'  Remote will be switched to commit {local_commit[:12]}')
-  
-  # Check build artifacts
-  if platform:
-    # Platform format: HpeProductLine\Volume\HpPlatforms\U68Pkg
-    # Build directory: Build\HpeProductLine\Volume\HpPlatforms\U68Pkg
-    build_dir = os.path.join(source_dir, 'Build', platform.replace('/', os.sep))
-    if os.path.exists(build_dir):
-      print(f'  Build artifacts: Will sync from {platform}')
+        print('  No local changes detected')
     else:
-      print(f'  ⚠ Build directory not found: {build_dir}')
-  else:
-    print(f'  Platform not set - build artifacts will not be synced')
+      print('  Warning: Could not check git status')
+  except Exception as e:
+    print(f'  Warning: Git status failed: {str(e)}')
+  print('')
   
+  # Step 5: Recurse through Build directory and add Intel ITP files
+  # Step 5: Add Intel ITP debug files (.map, .cod, .efi, .pdb, etc.) from Build directory
+  # Use last successful sync time for incremental updates
+  itp_files = []
+  if build_dir:
+    print('Adding Intel ITP debug files from Build directory...')
+    
+    # File extensions needed by Intel ITP
+    itp_extensions = {'.map', '.cod', '.efi', '.pdb', '.debug', '.sym'}
+    
+    skipped_count = 0
+    for root, dirs, files in os.walk(build_dir):
+      for file in files:
+        _, ext = os.path.splitext(file)
+        if ext.lower() in itp_extensions:
+          full_path = os.path.join(root, file)
+          
+          # Incremental: skip if file not modified since last successful sync
+          if last_sync_time > 0:
+            file_mtime = os.path.getmtime(full_path)
+            if file_mtime <= last_sync_time:
+              skipped_count += 1
+              continue
+          
+          # Get relative path from source_dir
+          rel_path = os.path.relpath(full_path, source_dir)
+          itp_files.append(rel_path)
+          zipf.write(full_path, rel_path)
+    
+    if last_sync_time > 0:
+      print(f'  Found {len(itp_files)} modified ITP file(s) (skipped {skipped_count} unchanged)')
+    else:
+      print(f'  Found {len(itp_files)} ITP debug file(s)')
+    print('')
+  
+  # Close the zip file
+  zipf.close()
+  
+  # Step 6: Add copy and unzip commands to script
+  if changed_files or itp_files:
+    with open(temp_command_file, 'a', newline='\n') as f:
+      f.write('# Copy zip file from mapped drive to destination\n')
+      f.write(f'$zipSource = "{temp_zip_file.replace(chr(92), chr(92)+chr(92))}"\n')
+      f.write('Write-Host "Copying zip file from mapped drive..."\n')
+      f.write('Copy-Item -Path $zipSource -Destination jump_sync.zip -Force\n\n')
+      
+      f.write('# Extract synced files\n')
+      f.write('Write-Host "Extracting files..."\n')
+      f.write(f'if (Test-Path "C:\\Program Files\\7-Zip\\7z.exe") {{\n')
+      f.write(f'  & "C:\\Program Files\\7-Zip\\7z.exe" x -y -bsp1 jump_sync.zip\n')
+      f.write(f'}} else {{\n')
+      f.write(f'  Expand-Archive -Path jump_sync.zip -DestinationPath "{remote_path}" -Force -Verbose\n')
+      f.write(f'}}\n\n')
+      
+      f.write('# Cleanup\n')
+      f.write('Remove-Item -Path jump_sync.zip -Force\n')
+      
+      # Write completion marker back to local machine via mapped drive
+      f.write('# Write completion marker back to local machine\n')
+      completion_path = completion_marker.replace('\\', '\\\\')
+      f.write(f'$completionData = @{{\n')
+      f.write(f'  timestamp = (Get-Date).ToString("o")\n')
+      f.write(f'  commit = "{local_commit if local_commit else "unknown"}"\n')
+      f.write(f'  files_synced = {len(changed_files) + len(itp_files)}\n')
+      f.write(f'}} | ConvertTo-Json\n')
+      f.write(f'$completionData | Out-File -FilePath "{completion_path}" -Encoding UTF8 -Force\n\n')
+      
+      f.write('Remove-Item -Path jump_sync.ps1 -Force\n\n')
+      
+      f.write('Write-Host ""\n')
+      f.write('Write-Host "Sync completed successfully!" -ForegroundColor Green\n')
+  
+  # Display completion message with instructions
   print('')
   print('=' * 60)
-  print('Configuration check complete!')
-  print('')
-  print('Run "bt jump" to perform the sync.')
+  print('✓ Sync package created successfully!')
   print('=' * 60)
   print('')
+  print('Files created in repository root:')
+  print(f'  Script: {os.path.basename(temp_command_file)}')
+  print(f'  Zip:    {os.path.basename(temp_zip_file)}')
+  if changed_files or itp_files:
+    print(f'  Count:  {len(changed_files) + len(itp_files)} file(s)')
+  print('')
+  print('To complete the sync:')
+  print('  1. Connect to jump station via RDP')
+  print(f'  2. Execute the script from your mapped drive:')
+  print(f'     Example: D:\\HPE\\Dev\\ROMS\\G12\\jump_sync.ps1')
+  print(f'     (Replace with your mapped drive letter and repo path)')
+  print('')
+  print('The script will:')
+  print('  - Fetch latest commits and sync to local commit')
+  print('  - Copy zip file from mapped drive')
+  print('  - Extract all files to destination')
+  print('  - Clean up temporary files')
+  print('')
+  
+  return 0
+
+
   
   return 0

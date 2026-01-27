@@ -171,16 +171,20 @@ The main program is 'bt.cmd'
 ### Version History ###
 | Version | Explanation                                                                            |
 |---------|----------------------------------------------------------------------------------------|
-| V1.0    | Major command rename, Jump Station sync, and improved table formatting                |
+| V1.0    | Major command rename, Jump Station sync redesign, and improved table formatting       |
 |         | - Renamed destroy → remove (single letter 'r')                                         |
 |         | - Renamed switch → use (single letter 'u')                                             |
 |         | - Renamed clean → cleanup (two letters 'cl')                                           |
 |         | - Renamed pull → fetch (single letter 'f')                                             |
-|         | - Added 'jump' command for syncing to Jump Station for remote debugging               |
-|         |   * Uses git checkout on remote for fast sync (instant with large repos)              |
-|         |   * Robocopy fallback for initial sync or when git unavailable                        |
-|         |   * /check option validates network, authentication, paths, and git commits           |
-|         |   * Automatic UNC path conversion from local paths                                    |
+|         | - Redesigned 'jump' command for syncing to Jump Station via mapped drive + RDP        |
+|         |   * Replaced SSH automation with simpler manual RDP workflow                           |
+|         |   * Simplified configuration from 4 parameters to 1 (destination path only)            |
+|         |   * Removed all SSH dependencies (OpenSSH, PuTTY, network auth)                        |
+|         |   * Files created in repo root for multi-repo support (not .bt/)                       |
+|         |   * Smart git sync embedded in script (fetch only when commits differ)                 |
+|         |   * Completion tracking enables incremental sync (18K+ files → changed only)           |
+|         |   * ZIP_STORED for 10x faster creation, 7-Zip extraction with progress                 |
+|         |   * Fixed git status parsing bug (was truncating first character)                      |
 |         | - Added 'worktrees' command (single letter 'w') to list all worktrees with info       |
 |         | - Added purpose field for worktrees (create /purpose or config purpose)               |
 |         | - Improved table formatting with aligned columns and headers for 'use' and 'worktrees'|
