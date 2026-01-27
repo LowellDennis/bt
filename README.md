@@ -66,20 +66,22 @@ usage: bt <command> [param1 [param2 [...]]]
   where command is one of:
       attach - Add a BIOS repository to the list of repositories.
        build - Build a BIOS for the current BIOS repository or worktree.
-       clean - Clean the current BIOS repository or worktree.
+     cleanup - Clean the current BIOS repository or worktree.
       config - Get or set BIOS tool configuration settings.
       create - Creates a new BIOS worktree and adds it to the list of worktrees.
-     destroy - Deletes a BIOS worktree and removes it from the list of worktrees.
       detach - Remove a BIOS repository from the list of repositories.
+       fetch - Updates a local repository or worktree with changes from its remote location.
         init - Initialize the local settings for the current BIOS repository or worktree.
+        jump - Sync source and build artifacts to a Jump Station for remote debugging.
        merge - Merge updates from an upstream location into a local repository or worktree.
         move - Move a BIOS worktree.
-        pull - Updates a local repository or worktree with changes from its remote location.
         push - Push updates from a local repository or worktree to its remote location.
+      remove - Deletes a BIOS worktree and removes it from the list of worktrees.
       select - Select a BIOS repository from the list of repositories.
       status - Get the status of the current BIOS repository or worktree.
-      switch - Switch to a different BIOS repository or worktree.
          top - Change directory to the top of the BIOS repository or worktree.
+         use - Switch to a different BIOS repository or worktree.
+   worktrees - Lists all worktrees with their repository, branch, and purpose.
 
 NOTE: command can be abbreviated as far as it does not conflict with
       another command abbreviation

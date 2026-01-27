@@ -44,12 +44,13 @@ def use():
       vcs = 'git'
       print('')
       print('  Available worktrees (currently selected worktree has *)')
-      print('  vcs worktree, repository, branch')
-      print('  --- -----------------------------------------------')
+      print('')
       
       # Use cached worktree info from initialization (fast!)
       worktree_info = getattr(data.gbl, 'worktree_cache', None)
       
+      # Collect all data first to calculate column widths
+      rows = []
       if worktree_info:
         # Use cached data - no git commands needed!
         for item in data.gbl.worktrees:
@@ -57,7 +58,7 @@ def use():
           repo = info.get('repo', '')
           branch = info.get('branch', '')
           star = '*' if item == data.gbl.worktree else ' '
-          print('{0} {1} {2}, {3}, {4}'.format(star, vcs, item, repo, branch))
+          rows.append((star, vcs, item, repo, branch))
       else:
         # Fallback: get info in single git command
         worktree_info = GetAllWorktreeInfo(data.gbl.worktrees)
@@ -67,14 +68,33 @@ def use():
             repo = info.get('repo', GetRepoFromWorktree(item))
             branch = info.get('branch', GetBranchFromWorktree(item))
             star = '*' if item == data.gbl.worktree else ' '
-            print('{0} {1} {2}, {3}, {4}'.format(star, vcs, item, repo, branch))
+            rows.append((star, vcs, item, repo, branch))
         else:
           # Final fallback to original method
           for item in data.gbl.worktrees:
             repo = GetRepoFromWorktree(item)
             branch = GetBranchFromWorktree(item)
             star = '*' if item == data.gbl.worktree else ' '
-            print('{0} {1} {2}, {3}, {4}'.format(star, vcs, item, repo, branch))
+            rows.append((star, vcs, item, repo, branch))
+      
+      # Calculate maximum widths for alignment
+      if rows:
+        max_worktree_len = max(len(row[2]) for row in rows)
+        max_repo_len = max(len(row[3]) for row in rows)
+        
+        # Ensure minimum width for headers
+        max_worktree_len = max(max_worktree_len, len('Worktree'))
+        max_repo_len = max(max_repo_len, len('Repository'))
+        
+        # Print header
+        print(f'  VCS {"Worktree":<{max_worktree_len}}  {"Repository":<{max_repo_len}}  Branch')
+        print(f'  --- {"-" * max_worktree_len}  {"-" * max_repo_len}  ------')
+        
+        # Print table with aligned columns
+        for star, vcs, worktree, repo, branch in rows:
+          print(f'{star} {vcs} {worktree:<{max_worktree_len}}  {repo:<{max_repo_len}}  {branch}')
+      
+      print('')
     else:
       print('  No worktrees    (use "bt create" to create one).')
   else:

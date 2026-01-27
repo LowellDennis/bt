@@ -1,0 +1,53 @@
+Sync source and build artifacts to a Jump Station for remote debugging
+
+The jump command synchronizes your local worktree source code and build 
+artifacts to a remote Jump Station using robocopy. This is useful when you
+need to debug firmware on a remote server using tools like Intel ITP that
+require access to source files and build artifacts (.map, .cod, etc.).
+
+USAGE:
+  bt jump [/check]
+
+OPTIONS:
+  /check - Verify jump station configuration and connectivity without syncing
+           - Tests network connectivity to jump station
+           - Verifies destination path is accessible with write permissions
+           - Counts files that need to be transferred
+           - Compares local and remote git commits
+
+CONFIGURATION:
+  The 'jumpstation' local setting must be configured first with the format:
+    <ip-or-hostname>;<username>;<password>;<remote-path>
+  
+  The remote-path is a local path on the Jump Station system (e.g., C:\path\to\folder)
+  It will be automatically converted to a UNC path (e.g., \\host\C$\path\to\folder)
+  
+  Example:
+    bt config jumpstation "jumpstation.hpe.com;lowell;MyPassword123;C:\Users\lowell\Desktop\GNext"
+  
+  This will sync to: \\jumpstation.hpe.com\C$\Users\lowell\Desktop\GNext
+
+BEHAVIOR:
+  - Syncs all source files from the current worktree
+  - Syncs build artifacts for the configured platform (.bt/platform setting)
+  - Uses robocopy with incremental sync (only changed files)
+  - Excludes: .git/, __pycache__/, *.pyc, and intermediate build files
+
+EXAMPLES:
+  # Configure jump station (use caret ^ to escape ! in cmd.exe)
+  bt config jumpstation "jumpstation.hpe.com;lowell;Pass123;C:\Users\lowell\Desktop\GNext"
+
+  # Verify configuration before first sync
+  bt jump /check
+
+  # Perform the sync
+  bt jump
+
+NOTE:
+  - Sync is one-way only (local → Jump Station)
+  - Requires network connectivity to the Jump Station
+  - Large initial sync; subsequent syncs are incremental and much faster
+  - Platform must be set (.bt/platform) to sync build artifacts
+  - Use /check to validate setup before syncing large amounts of data
+
+See also: config, build

@@ -624,6 +624,10 @@ export function activate(context: vscode.ExtensionContext) {
 			platformProvider.refresh();
 		}),
 		
+		vscode.commands.registerCommand('BIOSTool.jump', async () => {
+			await btRunner.runInTerminal('jump');
+		}),
+		
 		vscode.commands.registerCommand('BIOSTool.push', async () => {
 			await btRunner.runInTerminal('push');
 		}),

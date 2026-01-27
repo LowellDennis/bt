@@ -1,1 +1,1 @@
-Switch to a different BIOS repository or worktree.
+Use a different BIOS repository or worktree.

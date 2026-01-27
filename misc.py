@@ -109,6 +109,28 @@ def GetBmcInfo():
     if length > 3: info['pswd'] = bmc[3]
   return info
 
+# Return Jump Station info indicated by the local setting jumpstation
+# The jumpstation config entry is of the format <ip-or-hostname>;<username>;<password>;<destination-path>
+# Returns None if jumpstation is not set, otherwise returns parsed Jump Station information as a dictionary
+#   {host: <ip-or-hostname>, user: <username>, pswd: <password>, dest: <destination-path>}
+def GetJumpStationInfo():
+  info = None                                   # Assume jumpstation is not set
+  jump = data.lcl.GetItem('jumpstation')        # Jump station does not have to be set
+  # Parse info?
+  if jump:
+    jump   = jump.split(';')
+    length = len(jump)
+    if length < 4:
+      ErrorMessage('Jump station setting requires: <host>;<user>;<password>;<destination>')
+      # DOES NOT RETURN
+    info = {
+      'host': jump[0],
+      'user': jump[1],
+      'pswd': jump[2],
+      'dest': jump[3]
+    }
+  return info
+
 # Get the current branch
 # returns the current branch or None if none found
 def GetCurrentBranch(worktree):

@@ -24,8 +24,8 @@ $coreFiles = @(
 )
 
 $commandDirs = @(
-    "attach", "build", "clean", "config", "create", "destroy", "detach",
-    "init", "merge", "move", "pull", "push", "select", "status", "switch", "top"
+    "attach", "build", "cleanup", "config", "create", "remove", "detach",
+    "fetch", "init", "jump", "merge", "move", "push", "select", "status", "use", "top", "worktrees"
 )
 
 Write-Host "Copying core files..." -ForegroundColor Green

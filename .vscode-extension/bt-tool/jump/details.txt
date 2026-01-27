@@ -1,0 +1,47 @@
+Sync source and build artifacts to a Jump Station for remote debugging
+
+The jump command synchronizes your local worktree source code and build 
+artifacts to a remote Jump Station using robocopy. This is useful when you
+need to debug firmware on a remote server using tools like Intel ITP that
+require access to source files and build artifacts (.map, .cod, etc.).
+
+USAGE:
+  bt jump [destination-path]
+
+PARAMETERS:
+  destination-path - Optional Windows network path where files should be synced
+                     (e.g., \\jumpstation\share\username\worktree)
+                     If not provided, uses the saved 'jumpstation' setting
+
+CONFIGURATION:
+  The 'jumpstation' local setting stores connection information in the format:
+    <ip-or-hostname>;<username>;<password>;<destination-path>
+  
+  Example:
+    jumpstation.hpe.com;lowell;MyPassword123;\\jumpstation\share\lowell\g12
+
+  Set using: bt config jumpstation <value>
+
+BEHAVIOR:
+  - Syncs all source files from the current worktree
+  - Syncs build artifacts for the configured platform (.bt/platform setting)
+  - Uses robocopy with incremental sync (only changed files)
+  - Excludes: .git/, __pycache__/, *.pyc, and intermediate build files
+  - First-time use will prompt to save the destination path
+
+EXAMPLES:
+  # First time - specify destination and save it
+  bt jump \\jumpstation\share\lowell\g12
+
+  # Subsequent syncs - uses saved destination
+  bt jump
+
+  # Configure via config command
+  bt config jumpstation jumpstation.hpe.com;lowell;Pass123;\\jumpstation\share\lowell\g12
+
+NOTE:
+  - Sync is one-way only (local → Jump Station)
+  - Requires network connectivity to the Jump Station
+  - Large initial sync; subsequent syncs are incremental and much faster
+
+See also: config, build

@@ -93,6 +93,7 @@ export class PlatformTreeProvider implements vscode.TreeDataProvider<BTCommand |
             new BTCommand('remove', 'Remove', 'Remove a worktree', 'trash'),
             new BTCommand('detach', 'Detach', 'Detach a repository', 'remove'),
             new BTCommand('init', 'Init', 'Initialize platform settings', 'symbol-namespace'),
+            new BTCommand('jump', 'Jump', 'Sync to Jump Station', 'debug-disconnect'),
             new BTCommand('merge', 'Merge', 'Merge updates from upstream', 'git-merge'),
             new BTCommand('move', 'Move', 'Move BIOS worktree', 'file-symlink-directory'),
             new BTCommand('fetch', 'Fetch', 'Fetch from remote location', 'cloud-download'),
@@ -100,7 +101,8 @@ export class PlatformTreeProvider implements vscode.TreeDataProvider<BTCommand |
             new BTCommand('select', 'Select', 'Select BIOS repository', 'folder-opened'),
             new BTCommand('status', 'Status', 'Show repository status', 'list-tree'),
             new BTCommand('use', 'Use', 'Use different worktree', 'arrow-swap'),
-            new BTCommand('top', 'Top', 'Go to repository top', 'arrow-up')
+            new BTCommand('top', 'Top', 'Go to repository top', 'arrow-up'),
+            new BTCommand('worktrees', 'Worktrees', 'List all worktrees', 'list-tree')
         ];
     }
     

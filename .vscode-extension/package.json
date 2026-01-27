@@ -49,6 +49,10 @@
         "title": "BT: Fetch"
       },
       {
+        "command": "BIOSTool.jump",
+        "title": "BT: Jump"
+      },
+      {
         "command": "BIOSTool.push",
         "title": "BT: Push"
       },
