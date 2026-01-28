@@ -1489,6 +1489,20 @@ class BTGui(QMainWindow):
         self.top_btn.clicked.connect(self.on_bt_top_clicked)
         general_cmds_layout.addWidget(self.top_btn)
         
+        # Jump button
+        self.jump_btn = QPushButton('🚀 Jump')
+        self.jump_btn.setEnabled(False)
+        self.jump_btn.setToolTip('Sync to Jump Station (mapped drive + RDP)')
+        self.jump_btn.clicked.connect(self.on_bt_jump_clicked)
+        general_cmds_layout.addWidget(self.jump_btn)
+        
+        # Jump Clean button
+        self.jump_clean_btn = QPushButton('🧹🚀 Jump Clean')
+        self.jump_clean_btn.setEnabled(False)
+        self.jump_clean_btn.setToolTip('Clear jump station hash cache (forces full sync)')
+        self.jump_clean_btn.clicked.connect(self.on_bt_jump_clean_clicked)
+        general_cmds_layout.addWidget(self.jump_clean_btn)
+        
         general_cmds_group.setLayout(general_cmds_layout)
         layout.addWidget(general_cmds_group)
         
@@ -1873,6 +1887,9 @@ class BTGui(QMainWindow):
             self.top_btn.setEnabled(not any_build_running)
             # Move is only for worktrees
             self.move_btn.setEnabled(is_worktree and not any_build_running)
+            # Jump commands - enabled for repos/worktrees (not during any build)
+            self.jump_btn.setEnabled(not any_build_running)
+            self.jump_clean_btn.setEnabled(not any_build_running)
         else:
             self.build_btn.setEnabled(False)
             self.stop_btn.setEnabled(False)
@@ -1886,6 +1903,8 @@ class BTGui(QMainWindow):
             self.merge_btn.setEnabled(False)
             self.top_btn.setEnabled(False)
             self.move_btn.setEnabled(False)
+            self.jump_btn.setEnabled(False)
+            self.jump_clean_btn.setEnabled(False)
     
     def on_build_clicked(self):
         """Handle build button click"""
@@ -2552,6 +2571,65 @@ class BTGui(QMainWindow):
             current_tab.cmd_output.run_command(f'cd /d "{workspace_path}"')
         else:
             current_tab.cmd_output.run_command(f'cd "{workspace_path}"')
+    
+    def on_bt_jump_clicked(self):
+        """Handle bt jump button click - sync to jump station"""
+        current_tab = self.get_current_tab()
+        if not current_tab or not isinstance(current_tab, WorkspaceTab):
+            return
+        
+        # Check if jump station is configured
+        jump_config_file = os.path.join(current_tab.workspace_path, '.bt', 'jump')
+        if not os.path.exists(jump_config_file):
+            result = QMessageBox.question(
+                self,
+                'Jump Station Not Configured',
+                'Jump station is not configured for this workspace.\n\n'
+                'Would you like to configure it now?',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if result == QMessageBox.StandardButton.Yes:
+                # Prompt for destination path
+                dest_path, ok = QInputDialog.getText(
+                    self,
+                    'Configure Jump Station',
+                    'Enter destination path on jump station:\n'
+                    '(e.g., C:\\Users\\Administrator\\Desktop\\GNext)',
+                    text=''
+                )
+                
+                if ok and dest_path:
+                    # Run config command
+                    current_tab.cmd_output.run_command(f'bt config jump "{dest_path}"')
+                    # Wait a bit for config to complete
+                    QTimer.singleShot(500, lambda: self._run_bt_command('jump'))
+                else:
+                    return
+            else:
+                return
+        else:
+            # Run jump command
+            self._run_bt_command('jump')
+    
+    def on_bt_jump_clean_clicked(self):
+        """Handle bt jump /clean button click - clear jump station cache"""
+        current_tab = self.get_current_tab()
+        if not current_tab or not isinstance(current_tab, WorkspaceTab):
+            return
+        
+        # Confirm before cleaning
+        result = QMessageBox.question(
+            self,
+            'Clear Jump Station Cache',
+            'This will clear the jump station hash cache.\n'
+            'The next sync will perform a full sync (not incremental).\n\n'
+            'Are you sure you want to continue?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if result == QMessageBox.StandardButton.Yes:
+            self._run_bt_command('jump', '/clean')
     
     def on_bt_move_clicked(self):
         """Handle bt move button click (worktree only)"""
