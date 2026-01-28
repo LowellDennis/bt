@@ -15,7 +15,7 @@ try:
     from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                  QHBoxLayout, QPushButton, QTextEdit, QLabel,
                                  QGroupBox, QStatusBar, QTabWidget, QMessageBox, 
-                                 QInputDialog, QFileDialog, QProgressBar)
+                                 QInputDialog, QFileDialog, QProgressBar, QMenu, QToolButton)
     from PyQt6.QtCore import Qt, QTimer, QProcess
     from PyQt6.QtGui import QFont, QTextCursor, QKeyEvent, QTextCharFormat, QColor
 except ImportError as e:
@@ -1211,7 +1211,9 @@ class BTGui(QMainWindow):
     def init_ui(self):
         """Initialize the user interface"""
         self.setWindowTitle('BIOS Build Tool - GUI')
-        self.setGeometry(100, 100, 1400, 900)
+        
+        # Set reasonable window size
+        self.resize(1200, 800)
         
         # Central widget with main layout
         central = QWidget()
@@ -1366,7 +1368,7 @@ class BTGui(QMainWindow):
                 left: 10px;
                 padding: 0 5px;
             }
-            QPushButton {
+            QPushButton, QToolButton {
                 background-color: #0078d4;
                 color: white;
                 border: none;
@@ -1374,12 +1376,17 @@ class BTGui(QMainWindow):
                 border-radius: 4px;
                 font-weight: bold;
             }
-            QPushButton:hover {
+            QPushButton:hover, QToolButton:hover {
                 background-color: #106ebe;
             }
-            QPushButton:disabled {
+            QPushButton:disabled, QToolButton:disabled {
                 background-color: #cccccc;
                 color: #666666;
+            }
+            QToolButton::menu-button {
+                border: none;
+                border-left: 1px solid rgba(255, 255, 255, 0.3);
+                width: 16px;
             }
             QTreeWidget {
                 background-color: white;
@@ -1489,19 +1496,22 @@ class BTGui(QMainWindow):
         self.top_btn.clicked.connect(self.on_bt_top_clicked)
         general_cmds_layout.addWidget(self.top_btn)
         
-        # Jump button
-        self.jump_btn = QPushButton('🚀 Jump')
+        # Jump button with dropdown menu
+        self.jump_btn = QToolButton()
+        self.jump_btn.setText('🚀 Jump')
         self.jump_btn.setEnabled(False)
         self.jump_btn.setToolTip('Sync to Jump Station (mapped drive + RDP)')
+        self.jump_btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        
+        # Create menu for jump button
+        jump_menu = QMenu(self)
+        jump_clean_action = jump_menu.addAction('🧹 Jump /clean')
+        jump_clean_action.triggered.connect(self.on_bt_jump_clean_clicked)
+        
+        # Set the menu and default click action
+        self.jump_btn.setMenu(jump_menu)
         self.jump_btn.clicked.connect(self.on_bt_jump_clicked)
         general_cmds_layout.addWidget(self.jump_btn)
-        
-        # Jump Clean button
-        self.jump_clean_btn = QPushButton('🧹🚀 Jump Clean')
-        self.jump_clean_btn.setEnabled(False)
-        self.jump_clean_btn.setToolTip('Clear jump station hash cache (forces full sync)')
-        self.jump_clean_btn.clicked.connect(self.on_bt_jump_clean_clicked)
-        general_cmds_layout.addWidget(self.jump_clean_btn)
         
         general_cmds_group.setLayout(general_cmds_layout)
         layout.addWidget(general_cmds_group)
@@ -1516,12 +1526,12 @@ class BTGui(QMainWindow):
         repo_ops_layout.setSpacing(5)
         
         # Add Repo button
-        add_repo_btn = QPushButton('🔗 Attach Repo')
+        add_repo_btn = QPushButton('🔗 Attach')
         add_repo_btn.clicked.connect(self.on_add_repo_clicked)
         repo_ops_layout.addWidget(add_repo_btn)
         
         # Delete Repo button
-        self.delete_repo_btn = QPushButton('⛓️‍💥 Detach Repo')
+        self.delete_repo_btn = QPushButton('⛓️‍💥 Detach')
         self.delete_repo_btn.setEnabled(False)
         self.delete_repo_btn.clicked.connect(self.on_delete_repo_clicked)
         repo_ops_layout.addWidget(self.delete_repo_btn)
@@ -1537,7 +1547,7 @@ class BTGui(QMainWindow):
         worktree_ops_layout.setSpacing(5)
         
         # Create Worktree button
-        self.create_worktree_btn = QPushButton('🌿 Create Worktree')
+        self.create_worktree_btn = QPushButton('🌿 Create')
         self.create_worktree_btn.setEnabled(False)
         self.create_worktree_btn.clicked.connect(self.on_create_worktree_clicked)
         worktree_ops_layout.addWidget(self.create_worktree_btn)
@@ -1549,7 +1559,7 @@ class BTGui(QMainWindow):
         worktree_ops_layout.addWidget(self.move_btn)
         
         # Remove Worktree button
-        self.remove_worktree_btn = QPushButton('❌ Remove Worktree')
+        self.remove_worktree_btn = QPushButton('❌ Remove')
         self.remove_worktree_btn.setEnabled(False)
         self.remove_worktree_btn.clicked.connect(self.on_remove_worktree_clicked)
         worktree_ops_layout.addWidget(self.remove_worktree_btn)
@@ -1887,9 +1897,8 @@ class BTGui(QMainWindow):
             self.top_btn.setEnabled(not any_build_running)
             # Move is only for worktrees
             self.move_btn.setEnabled(is_worktree and not any_build_running)
-            # Jump commands - enabled for repos/worktrees (not during any build)
+            # Jump command - enabled for repos/worktrees (not during any build)
             self.jump_btn.setEnabled(not any_build_running)
-            self.jump_clean_btn.setEnabled(not any_build_running)
         else:
             self.build_btn.setEnabled(False)
             self.stop_btn.setEnabled(False)
@@ -1904,7 +1913,6 @@ class BTGui(QMainWindow):
             self.top_btn.setEnabled(False)
             self.move_btn.setEnabled(False)
             self.jump_btn.setEnabled(False)
-            self.jump_clean_btn.setEnabled(False)
     
     def on_build_clicked(self):
         """Handle build button click"""
@@ -2629,7 +2637,7 @@ class BTGui(QMainWindow):
         )
         
         if result == QMessageBox.StandardButton.Yes:
-            self._run_bt_command('jump', '/clean')
+            self._run_bt_command('jump /clean')
     
     def on_bt_move_clicked(self):
         """Handle bt move button click (worktree only)"""
@@ -2836,6 +2844,16 @@ def main():
     
     window = BTGui()
     window.show()
+    
+    # Center the window after it's fully rendered
+    def center_window():
+        screen = app.primaryScreen().availableGeometry()
+        window_rect = window.frameGeometry()
+        center_point = screen.center()
+        window_rect.moveCenter(center_point)
+        window.move(window_rect.topLeft())
+    
+    QTimer.singleShot(0, center_window)
     
     sys.exit(app.exec())
 

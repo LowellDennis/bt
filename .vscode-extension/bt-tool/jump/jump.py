@@ -321,7 +321,7 @@ def jump():
   # Display completion message with instructions
   print('')
   print('=' * 60)
-  print('✓ Sync package created successfully!')
+  print('*** Sync package created successfully!')
   print('=' * 60)
   print('')
   print('Files created in repository root:')
