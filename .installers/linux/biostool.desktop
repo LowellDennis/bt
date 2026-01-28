@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=BIOS Tool GUI
+Comment=HPE Server BIOS Build Tool - Graphical Interface
+Exec=/usr/bin/python3 /opt/biostool/.gui/btgui.py
+Icon=/opt/biostool/.gui/biostool
+Terminal=false
+Categories=Development;Utility;
+Keywords=BIOS;Build;HPE;Server;
+StartupWMClass=BTGui

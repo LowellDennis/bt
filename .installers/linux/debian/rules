@@ -15,7 +15,12 @@ override_dh_auto_install:
 	cp -r attach build cleanup config create remove detach init merge move fetch push select status use top worktrees debian/biostool/usr/share/biostool/ 2>/dev/null || true
 	# Install GUI application
 	install -d debian/biostool/usr/share/biostool/.gui
-	cp .gui/* debian/biostool/usr/share/biostool/.gui/ 2>/dev/null || true
+	cp -r .gui/* debian/biostool/usr/share/biostool/.gui/ 2>/dev/null || true
+	# Install desktop entry and icon
+	install -d debian/biostool/usr/share/applications
+	install -m 644 .installers/linux/biostool.desktop debian/biostool/usr/share/applications/
+	install -d debian/biostool/usr/share/pixmaps
+	install -m 644 .gui/biostool.ico debian/biostool/usr/share/pixmaps/biostool.ico 2>/dev/null || true
 	# Install VS Code extension
 	install -d debian/biostool/usr/share/biostool/.vscode-extension
 	cp *.vsix debian/biostool/usr/share/biostool/.vscode-extension/ 2>/dev/null || true

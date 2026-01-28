@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-01-28
 
 ### Added
+- **GUI Modularization**
+  - Refactored btgui.py (2906 lines) into focused modules
+  - widgets/console.py - InteractiveConsole (407 lines)
+  - widgets/workspace_tab.py - WorkspaceTab (490 lines)
+  - core/workspace_discovery.py - Repository discovery (252 lines)
+  - ui/main_window.py - Main window (1722 lines)
+  - btgui.py - Minimal entry point (90 lines)
+  - Improved maintainability and code navigation
+- **Icon Integration**
+  - Window icon support for GUI (upper left corner)
+  - Taskbar icon support (Windows, Linux, macOS)
+  - Windows installer icon integration
+  - Linux desktop entry with icon (.desktop file)
+  - macOS .icns format support
+  - Icon converter script for macOS
 - **Comprehensive Test Suite for evaluate.py**
   - 58 comprehensive tests covering all operators and edge cases
   - Tests for arithmetic, bitwise, logical, and comparison operators
@@ -48,6 +63,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GitHub Templates**
   - Bug report template
   - Feature request template
+
+### Changed
+- GUI architecture improved with modular design
+- Import strategy changed to absolute imports for better compatibility
   - Question template
   - Pull request template with checklist
 - **CONTRIBUTING.md**

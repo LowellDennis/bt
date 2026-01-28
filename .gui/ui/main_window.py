@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPu
                              QLabel, QGroupBox, QStatusBar, QTabWidget, QMessageBox,
                              QInputDialog, QFileDialog, QToolButton, QMenu)
 from PyQt6.QtCore import Qt, QTimer, QProcess
-from PyQt6.QtGui import QTextCursor
+from PyQt6.QtGui import QTextCursor, QIcon
 
 import sys
 import os
@@ -35,6 +35,14 @@ class BTGui(QMainWindow):
     def init_ui(self):
         """Initialize the user interface"""
         self.setWindowTitle('BIOS Build Tool - GUI')
+        
+        # Set window icon (try .icns for macOS, .ico for Windows/Linux)
+        gui_dir = os.path.dirname(self.bt_path)
+        for icon_file in ['biostool.icns', 'biostool.ico']:
+            icon_path = os.path.join(gui_dir, icon_file)
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+                break
         
         # Set reasonable window size
         self.resize(1200, 800)
