@@ -111,14 +111,11 @@ def GetBmcInfo():
 
 # Return Jump Station info indicated by the local setting jump
 # The jump config entry is just the destination path
-# Returns None if jump is not set, otherwise returns parsed Jump Station information as a dictionary
-#   {dest: <destination-path>}
+# Returns None if jump is not set, otherwise returns a dictionary with {dest: <destination-path>}
 def GetJumpStationInfo():
-  info = None                                   # Assume jump is not set
-  jump = data.lcl.GetItem('jump')               # Jump station does not have to be set
-  # Parse info?
+  info = None
+  jump = data.lcl.GetItem('jump')
   if jump:
-    # Just the destination path (simplified from old host;user;password;path format)
     info = {'dest': jump}
   return info
 

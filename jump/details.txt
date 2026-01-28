@@ -57,14 +57,6 @@ BEHAVIOR:
   - Falls back to PowerShell Expand-Archive if 7-Zip not found
   - Use /clean to clear hash cache when jump station changes
 
-ADVANTAGES OVER SSH APPROACH:
-  - No SSH server configuration needed
-  - No password authentication complexity
-  - No network connectivity issues
-  - Uses existing RDP connection and mapped drives
-  - Full visibility into sync progress
-  - Manual control - you decide when to sync
-
 REQUIREMENTS:
   - RDP access to the Jump Station
   - Local drive mapped on Jump Station (e.g., \\devmachine\D$ → D:)

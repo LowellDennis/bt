@@ -4,12 +4,8 @@
 import os
 import sys
 import subprocess
-import socket
-import tempfile
 import zipfile
-import shutil
 import json
-import time
 import hashlib
 
 # Local modules
