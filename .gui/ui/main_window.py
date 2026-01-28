@@ -37,9 +37,8 @@ class BTGui(QMainWindow):
         self.setWindowTitle('BIOS Build Tool - GUI')
         
         # Set window icon (try .icns for macOS, .ico for Windows/Linux)
-        gui_dir = os.path.dirname(self.bt_path)
         for icon_file in ['biostool.icns', 'biostool.ico']:
-            icon_path = os.path.join(gui_dir, icon_file)
+            icon_path = os.path.join(self.bt_path, icon_file)
             if os.path.exists(icon_path):
                 self.setWindowIcon(QIcon(icon_path))
                 break

@@ -50,8 +50,23 @@ from ui import BTGui
 
 def main():
     """Main entry point"""
+    # Fix Windows taskbar icon grouping
+    if sys.platform == 'win32':
+        import ctypes
+        myappid = 'HPE.BIOSTool.GUI.1.1'  # Unique AppUserModelID
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    
     app = QApplication(sys.argv)
     app.setStyle('Fusion')  # Modern look
+    
+    # Set application-wide icon
+    icon_dir = os.path.dirname(os.path.abspath(__file__))
+    for icon_file in ['biostool.icns', 'biostool.ico']:
+        icon_path = os.path.join(icon_dir, icon_file)
+        if os.path.exists(icon_path):
+            from PyQt6.QtGui import QIcon
+            app.setWindowIcon(QIcon(icon_path))
+            break
     
     window = BTGui()
     window.show()
