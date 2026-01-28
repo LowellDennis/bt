@@ -1,4 +1,1 @@
-Sync source and build artifacts to a Jump Station for remote debugging
-
-Options:
-  /source-only  - Sync only source files, skip build artifacts (faster)
+Sync source and build artifacts to a Jump Station for remote debugging.

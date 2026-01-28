@@ -224,7 +224,7 @@ flake8 .
 
 ### Adding a Configuration Key
 
-1. Document in `docs/configuration.md`
+1. Document in `.docs/configuration.md`
 2. Add default in `data.py`
 3. Add to `global.txt` template
 

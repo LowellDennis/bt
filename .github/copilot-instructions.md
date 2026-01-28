@@ -26,8 +26,8 @@ command.py          # Command loader/executor
 cmdline.py          # Argument parser
 <command>/          # Command subdirectories
   <command>.py      # Command implementation
-  terse.txt         # One-line description
-  details.txt       # Detailed help text
+  terse.txt         # Exactly one line: what the command does (no options)
+  details.txt       # Detailed help text with usage and options
   needs.vcs         # (optional) VCS requirement marker
 ```
 
@@ -47,8 +47,8 @@ cmdline.py          # Argument parser
 When adding/modifying commands:
 1. Create directory named after command (e.g., `build/`)
 2. Add `<command>.py` with main logic
-3. Add `terse.txt` with brief description (one line)
-4. Add `details.txt` with detailed help
+3. Add `terse.txt` with exactly one line describing what the command does (no options/arguments)
+4. Add `details.txt` with detailed help including usage examples, options, and arguments
 5. If command needs VCS, add empty `needs.vcs` file
 6. Import necessary modules: `run`, `vcs`, `logger`, `data`, `misc`
 7. Follow error handling pattern: return error codes, don't use `sys.exit()`
@@ -323,8 +323,8 @@ When adding tests:
 - Categories: Added, Changed, Deprecated, Removed, Fixed, Security
 
 #### Command Help Files
-- `<command>/terse.txt`: One-line description
-- `<command>/details.txt`: Detailed usage and examples
+- `<command>/terse.txt`: Exactly one line describing what the command does (typically no mention of options/arguments)
+- `<command>/details.txt`: Detailed usage examples, options, arguments, and behavior
 
 ### Developer Documentation
 

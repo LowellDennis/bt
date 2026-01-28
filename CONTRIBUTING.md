@@ -94,8 +94,8 @@ The BT project has three main components:
 
 2. **Create required files:**
    - `<command-name>.py` - Implementation
-   - `terse.txt` - One-line description
-   - `details.txt` - Detailed help text
+   - `terse.txt` - Exactly one line: what the command does (no options)
+   - `details.txt` - Detailed help text with usage examples and options
    - `needs.vcs` - (Optional) If command requires Git
 
 3. **Implement command logic:**
@@ -144,8 +144,8 @@ When modifying core modules (`run.py`, `vcs.py`, `data.py`, etc.):
 
 - **README.md** - User-facing documentation
 - **CHANGELOG.md** - Version history (use Keep a Changelog format)
-- **docs/** - Developer documentation
-- **Command help** - Update `terse.txt` and `details.txt`
+- **.docs/** - Developer documentation
+- **Command help** - `terse.txt` (one line, no options) and `details.txt` (detailed usage)
 
 ## Testing
 
@@ -341,9 +341,9 @@ bt/
 ├── .gui/                    # GUI tool
 ├── .vscode-extension/       # VS Code extension
 ├── installers/              # Installer scripts
-├── scripts/                 # Utility scripts
-├── tests/                   # Test suite
-├── docs/                    # Documentation
+├── .scripts/                # Utility scripts
+├── .tests/                  # Test suite
+├── .docs/                   # Documentation
 └── README.md
 ```
 

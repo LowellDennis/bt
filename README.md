@@ -185,8 +185,8 @@ BT is easily extensible with a hierarchical design:
 1. Main program: `bt.cmd` (Windows) or `bt.sh` (Linux/macOS)
 2. Python entry: `bt.py` scans for command subdirectories
 3. Each command subdirectory contains:
-   - `terse.txt` - Brief command description
-   - `details.txt` - Detailed command documentation
+   - `terse.txt` - Exactly one line: what the command does (no options)
+   - `details.txt` - Detailed command documentation with usage and options
    - `needs.vcs` - (optional) Indicates VCS requirements
    - `<command>.py` - Command implementation
    - Additional support files (e.g., `filter.txt`, `send.ps1`)
@@ -201,18 +201,4 @@ Maintained by [Lowell Dennis](mailto:lowell.dennis@hpe.com?subject="BIOS Tool")
 
 ## Version History
 
-| Version  | Changes                                                          |
-|----------|------------------------------------------------------------------|
-| **V1.1** | Command renames (destroy→remove, switch→use, clean→cleanup,      |
-|          | pull→fetch), Jump Station redesign (mapped drive+RDP, hash-based |
-|          | sync), worktrees command, improved table formatting,             |
-|          | GUI/extension updates                                            |
-| **V1.1** | Linux/macOS support, bug fixes                                   |
-| **V1.1** | GUI improvements                                                 |
-| **V1.1** | Windows/Linux installers                                         |
-| **V1.1** | VS Code extension, ITP debugger support                          |
-| **V1.1** | Build progress tracking                                          |
-| **V1.1** | Help system improvements, wake lock, BMC upload support          |
-| **V1.1** | Bug fixes                                                        |
-| **V1.1** | Team release, worktree fixes                                     |
-| **V1.1** | Original release                                                 |
+For detailed version history and changelog, see [CHANGELOG.md](CHANGELOG.md).

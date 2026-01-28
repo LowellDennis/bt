@@ -3,13 +3,13 @@
 [run]
 source = .
 omit = 
-    tests/*
+    .tests/*
     .venv/*
     __pycache__/*
     setup.py
-    docs/*
+    .docs/*
     .githooks/*
-    packaging/*
+    .packaging/*
     installers/*
     .vscode-extension/*
 

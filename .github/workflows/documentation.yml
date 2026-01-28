@@ -4,12 +4,12 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'docs/**'
+      - '.docs/**'
       - '**.py'
   pull_request:
     branches: [ main ]
     paths:
-      - 'docs/**'
+      - '.docs/**'
 
 jobs:
   build-docs:
@@ -30,19 +30,19 @@ jobs:
     
     - name: Build documentation
       run: |
-        cd docs
+        cd .docs
         make html
     
     - name: Upload documentation artifact
       uses: actions/upload-artifact@v3
       with:
         name: documentation
-        path: docs/_build/html/
+        path: .docs/_build/html/
     
     - name: Deploy to GitHub Pages
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs/_build/html
+        publish_dir: ./.docs/_build/html
         cname: bt-docs.example.com  # Optional: custom domain

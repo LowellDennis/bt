@@ -5,7 +5,7 @@ This directory contains developer and user documentation for the BIOS Tool (BT) 
 ## Documentation Structure
 
 ```
-docs/
+.docs/
   architecture.md    # System architecture and design decisions
   commands.md        # Detailed command reference
   configuration.md   # Configuration system guide
@@ -25,7 +25,7 @@ docs/
 ### API Documentation (Future)
 Generate from docstrings:
 ```bash
-sphinx-build -b html docs/api docs/api/_build
+sphinx-build -b html .docs/api .docs/api/_build
 ```
 
 ### Documentation Website (Future)

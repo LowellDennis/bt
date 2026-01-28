@@ -17,7 +17,7 @@ Have you:
 - [ ] Read the README.md?
 - [ ] Checked command help (`bt <command> --help`)?
 - [ ] Searched existing issues?
-- [ ] Looked at the documentation in `docs/`?
+- [ ] Looked at the documentation in `.docs/`?
 
 ## Environment
 - **BT Version:** (run `bt --version` or check README.md)

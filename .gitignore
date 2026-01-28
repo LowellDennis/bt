@@ -50,9 +50,9 @@ lib64/
 
 # Documentation build output #
 ##############################
-docs/_build/
-docs/_static/
-docs/_templates/
+.docs/_build/
+.docs/_static/
+.docs/_templates/
 htmlcov/
 .coverage
 coverage.xml
@@ -60,9 +60,8 @@ coverage.xml
 
 # Packaging outputs #
 #####################
-packaging/gui/build/
-packaging/gui/dist/
-*.spec
+.packaging/gui/build/
+.packaging/gui/dist/
 
 # Security reports #
 ####################
