@@ -1,0 +1,38 @@
+#!/bin/bash
+# Post-installation script for macOS installer
+
+set -e
+
+INSTALL_ROOT="/usr/local/opt/biostool"
+VSIX_FILE="/tmp/biostool.vsix"
+
+echo "Running post-installation tasks..."
+
+# Create symlinks
+echo "Creating symlinks..."
+ln -sf "$INSTALL_ROOT/bt.sh" /usr/local/bin/bt
+
+# Create GUI wrapper
+cat > /usr/local/bin/btgui << EOF
+#!/bin/bash
+python3 "$INSTALL_ROOT/.gui/btgui.py" "\$@"
+EOF
+chmod +x /usr/local/bin/btgui
+
+# Install VS Code extension if VS Code is installed
+if command -v code &> /dev/null; then
+    echo "VS Code detected, installing extension..."
+    
+    # Find the .vsix file (it was copied during package creation)
+    VSIX_PATH=$(find "$INSTALL_ROOT" -name "biostool-*.vsix" | head -1)
+    
+    if [ -n "$VSIX_PATH" ]; then
+        code --install-extension "$VSIX_PATH" || echo "Warning: Could not install VS Code extension"
+        rm -f "$VSIX_PATH"  # Clean up
+    fi
+fi
+
+echo "Installation complete!"
+echo "Run 'bt --help' to get started"
+
+exit 0

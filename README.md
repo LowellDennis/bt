@@ -2,6 +2,11 @@
 
 # BIOS Tool (BT)
 
+[![Tests](https://github.com/LowellDennis/bt/actions/workflows/test-and-coverage.yml/badge.svg)](https://github.com/LowellDennis/bt/actions/workflows/test-and-coverage.yml)
+[![Code Quality](https://github.com/LowellDennis/bt/actions/workflows/code-quality.yml/badge.svg)](https://github.com/LowellDennis/bt/actions/workflows/code-quality.yml)
+[![codecov](https://codecov.io/gh/LowellDennis/bt/branch/main/graph/badge.svg)](https://codecov.io/gh/LowellDennis/bt)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
 A suite of tools for working with HPE Server BIOS source code, including a command-line interface, GUI application, and VS Code extension.
 
 **Current Version:** V1.0

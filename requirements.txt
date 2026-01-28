@@ -14,3 +14,18 @@ PyQt6
 pytest>=7.0.0
 pytest-cov>=4.0.0
 pytest-mock>=3.10.0
+
+# Documentation dependencies (optional)
+sphinx>=5.0.0
+sphinx-rtd-theme>=1.0.0
+myst-parser>=0.18.0
+
+# Code quality tools (optional)
+flake8>=6.0.0
+black>=23.0.0
+isort>=5.12.0
+bandit>=1.7.0
+safety>=2.3.0
+
+# GUI packaging (optional)
+pyinstaller>=5.0.0

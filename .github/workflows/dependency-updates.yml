@@ -1,0 +1,62 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run weekly on Mondays at 9am UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pip-tools
+    
+    - name: Check for outdated packages
+      run: |
+        pip list --outdated
+    
+    - name: Update requirements
+      run: |
+        # This is informational - actual updates should be manual
+        # to avoid breaking changes
+        pip list --outdated --format=json > outdated-packages.json
+    
+    - name: Upload outdated packages report
+      uses: actions/upload-artifact@v3
+      with:
+        name: outdated-packages
+        path: outdated-packages.json
+    
+    - name: Create issue if updates available
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const outdated = JSON.parse(fs.readFileSync('outdated-packages.json', 'utf8'));
+          
+          if (outdated.length > 0) {
+            const body = `## Outdated Dependencies\n\n` +
+              outdated.map(pkg => 
+                `- **${pkg.name}**: ${pkg.version} → ${pkg.latest_version}`
+              ).join('\n');
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Weekly Dependency Update Check',
+              body: body,
+              labels: ['dependencies']
+            });
+          }
