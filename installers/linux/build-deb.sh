@@ -34,8 +34,13 @@ mkdir -p "$PACKAGE_DIR"
 # Copy source files
 echo "Copying source files..."
 cd "$PROJECT_ROOT"
-cp -r *.py *.txt *.md "$PACKAGE_DIR/" 2>/dev/null || true
+cp *.py *.sh *.txt *.md "$PACKAGE_DIR/" 2>/dev/null || true
 cp -r attach build cleanup config create remove detach init merge move fetch push select status use top worktrees "$PACKAGE_DIR/"
+# Copy GUI application
+if [ -d "$PROJECT_ROOT/.gui" ]; then
+    echo "Copying GUI application..."
+    cp -r "$PROJECT_ROOT/.gui" "$PACKAGE_DIR/"
+fi
 
 # Copy debian directory
 echo "Copying debian package files..."
@@ -46,20 +51,13 @@ chmod 755 "$PACKAGE_DIR/debian/rules"
 chmod 755 "$PACKAGE_DIR/debian/postinst"
 chmod 755 "$PACKAGE_DIR/debian/postrm"
 
-# Build VS Code extension if it exists
+# Copy pre-built VS Code extension if it exists
 VSCODE_EXT_DIR="$PROJECT_ROOT/.vscode-extension"
-if [ -d "$VSCODE_EXT_DIR" ]; then
-    echo "Building VS Code extension..."
-    cd "$VSCODE_EXT_DIR"
-    if [ -f "package.json" ]; then
-        if command -v npm &> /dev/null; then
-            npm install
-            npm run compile
-            npx @vscode/vsce package --out "$PACKAGE_DIR/"
-        else
-            echo "Warning: npm not found. Skipping VS Code extension build."
-        fi
-    fi
+if [ -f "$VSCODE_EXT_DIR/BIOSTool-1.0.0.vsix" ]; then
+    echo "Copying VS Code extension..."
+    cp "$VSCODE_EXT_DIR/BIOSTool-1.0.0.vsix" "$PACKAGE_DIR/"
+else
+    echo "Warning: Pre-built VS Code extension not found. Skipping."
 fi
 
 # Build package

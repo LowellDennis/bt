@@ -15,8 +15,8 @@ case "$1" in
         
         # Check for VS Code and offer to install extension
         if command -v code >/dev/null 2>&1; then
-            VSIX_FILE="/usr/share/biostool/BIOSTool-0.7.0.vsix"
-            if [ -f "$VSIX_FILE" ]; then
+            VSIX_FILE=$(find /usr/share/biostool/.vscode-extension -name "*.vsix" 2>/dev/null | head -n 1)
+            if [ -n "$VSIX_FILE" ]; then
                 echo "VS Code detected. To install the BIOSTool extension, run:"
                 echo "  code --install-extension $VSIX_FILE"
                 echo ""
