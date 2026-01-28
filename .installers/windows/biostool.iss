@@ -65,9 +65,13 @@ Source: "..\..\use\*"; DestDir: "{app}\use"; Flags: ignoreversion recursesubdirs
 Source: "..\..\top\*"; DestDir: "{app}\top"; Flags: ignoreversion recursesubdirs
 Source: "..\..\worktrees\*"; DestDir: "{app}\worktrees"; Flags: ignoreversion recursesubdirs
 
-; GUI Application files
+; GUI Application files (modular structure)
 Source: "..\..\.gui\btgui.py"; DestDir: "{app}\.gui"; Flags: ignoreversion
 Source: "..\..\.gui\biostool.ico"; DestDir: "{app}\.gui"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\..\.gui\biostool.icns"; DestDir: "{app}\.gui"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\..\.gui\widgets\*"; DestDir: "{app}\.gui\widgets"; Flags: ignoreversion recursesubdirs
+Source: "..\..\.gui\core\*"; DestDir: "{app}\.gui\core"; Flags: ignoreversion recursesubdirs
+Source: "..\..\.gui\ui\*"; DestDir: "{app}\.gui\ui"; Flags: ignoreversion recursesubdirs
 
 ; VS Code Extension (included if .vsix exists, installed if VS Code detected)
 Source: "..\..\.vscode-extension\*.vsix"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall skipifsourcedoesntexist
