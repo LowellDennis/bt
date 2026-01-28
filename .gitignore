@@ -14,6 +14,11 @@ __pycache__/
 .not_ready/
 .vscode/
 
+# History files #
+#################
+.history/
+*.history/
+
 # Packages #
 ############
 # it's better to unpack these files and commit the raw source
