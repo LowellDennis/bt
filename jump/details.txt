@@ -7,10 +7,11 @@ tools like Intel ITP that require access to source files and build artifacts
 (.map, .cod, etc.).
 
 USAGE:
-  bt jump [/source-only]
+  bt jump [/source-only] [/clean]
 
 OPTIONS:
   /source-only - Skip build artifacts (ITP debug files), sync source code only
+  /clean       - Clear jump station hash cache (forces full sync on next run)
 
 CONFIGURATION:
   The 'jumpstation' local setting must be configured with the destination path:
@@ -46,10 +47,15 @@ WORKFLOW:
 BEHAVIOR:
   - Compares local git commit with remote (embedded in script)
   - Only syncs git if commits differ
+  - Uses SHA256 hashes to detect file changes (not timestamps)
+  - Stores hashes in .bt/jump_hashes.json for incremental sync
+  - First sync: all files; subsequent syncs: only files with changed hashes
+  - Handles build artifact regeneration correctly (hash-based, not time-based)
+  - Jump station writes .bt/jump_last_sync on completion (validates cache)
   - Uses ZIP_STORED (no compression) for fast zip creation
-  - Tracks last sync time to skip unchanged build artifacts
   - Uses 7-Zip for extraction if available (faster with progress)
   - Falls back to PowerShell Expand-Archive if 7-Zip not found
+  - Use /clean to clear hash cache when jump station changes
 
 ADVANTAGES OVER SSH APPROACH:
   - No SSH server configuration needed
@@ -74,6 +80,9 @@ EXAMPLES:
 
   # Sync source only (skip 18K+ build artifacts)
   bt jump /source-only
+
+  # Clear hash cache (forces full sync next time)
+  bt jump /clean
 
   # On Jump Station via RDP, execute:
   D:\HPE\Dev\ROMS\G12\jump_sync.ps1

@@ -10,6 +10,7 @@ import zipfile
 import shutil
 import json
 import time
+import hashlib
 
 # Local modules
 import data
@@ -17,12 +18,56 @@ from cmdline  import ParseCommandLine
 from error    import ErrorMessage
 from misc     import GetJumpStationInfo
 
+# Calculate SHA256 hash of a file
+def calculate_file_hash(file_path):
+  sha256_hash = hashlib.sha256()
+  with open(file_path, 'rb') as f:
+    # Read in chunks to handle large files efficiently
+    for byte_block in iter(lambda: f.read(4096), b""):
+      sha256_hash.update(byte_block)
+  return sha256_hash.hexdigest()
+
+# Clean jump station cache - removes hash cache and sync timestamp
+# returns 0 on success
+def clean_jump_cache():
+  bt_dir = os.path.join(data.gbl.worktree, '.bt')
+  hash_file = os.path.join(bt_dir, 'jump_hashes.json')
+  sync_file = os.path.join(bt_dir, 'jump_last_sync')
+  
+  removed = []
+  if os.path.exists(hash_file):
+    os.remove(hash_file)
+    removed.append('jump_hashes.json')
+  
+  if os.path.exists(sync_file):
+    os.remove(sync_file)
+    removed.append('jump_last_sync')
+  
+  if removed:
+    print('')
+    print('Jump Station Cache Cleared')
+    print('=' * 60)
+    print(f'Removed: {", ".join(removed)}')
+    print('')
+    print('Next "bt jump" will perform a full sync (not incremental)')
+    print('')
+  else:
+    print('')
+    print('No jump station cache found (already clean)')
+    print('')
+  
+  return 0
+
 # Jump command handler - syncs source and build artifacts to Jump Station using mapped drive + RDP
 # returns 0 on success, DOES NOT RETURN otherwise
 def jump():
   # Get command line information
-  prms, opts = ParseCommandLine({'source-only': False}, 1)
+  prms, opts = ParseCommandLine({'source-only': False, 'clean': False}, 1)
   # DOES NOT RETURN if invalid options or parameters are found
+  
+  # Handle /clean option
+  if opts['clean']:
+    return clean_jump_cache()
 
   # Get jumpstation configuration
   jump_info = GetJumpStationInfo()
@@ -78,25 +123,28 @@ def jump():
   # Create sync files in repository root (allows multiple repos with different jump stations)
   temp_command_file = os.path.join(source_dir, 'jump_sync.ps1')
   temp_zip_file = os.path.join(source_dir, 'jump_sync.zip')
-  completion_marker = os.path.join(source_dir, '.bt_jump_completed.json')
   
-  # Check for previous successful sync
-  last_sync_commit = None
-  last_sync_time = 0
-  if os.path.exists(completion_marker):
+  # Hash cache in .bt directory
+  bt_dir = os.path.join(source_dir, '.bt')
+  hash_cache_file = os.path.join(bt_dir, 'jump_hashes.json')
+  sync_timestamp_file = os.path.join(bt_dir, 'jump_last_sync')
+  
+  # Load previous hashes if last sync was successful
+  previous_hashes = {}
+  cache_valid = False
+  if os.path.exists(sync_timestamp_file) and os.path.exists(hash_cache_file):
     try:
-      with open(completion_marker, 'r') as f:
-        completion_data = json.load(f)
-        last_sync_commit = completion_data.get('commit')
-        timestamp_str = completion_data.get('timestamp')
-        if timestamp_str:
-          # Parse ISO format timestamp
-          from datetime import datetime
-          last_sync_dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-          last_sync_time = last_sync_dt.timestamp()
-        print(f'Previous sync: {completion_data.get("timestamp", "unknown")} ({completion_data.get("files_synced", 0)} files)')
+      with open(sync_timestamp_file, 'r') as f:
+        last_sync_time = f.read().strip()
+      with open(hash_cache_file, 'r') as f:
+        previous_hashes = json.load(f)
+      cache_valid = True
+      print(f'Previous sync: {last_sync_time} ({len(previous_hashes)} files cached)')
     except Exception as e:
-      print(f'Warning: Could not read previous sync data: {e}')
+      print(f'Warning: Could not load hash cache: {e}')
+      print('Performing full sync...')
+  else:
+    print('No previous sync found - performing full sync')
   
   # Initialize PowerShell script for execution on jump station
   with open(temp_command_file, 'w', newline='\n') as f:
@@ -159,6 +207,8 @@ def jump():
   # Step 4: Check local git status and add modified/uncommitted changes to zip
   print('Checking for modified/uncommitted files...')
   changed_files = []
+  current_hashes = {}  # Track hashes for all files being synced
+  
   try:
     result = subprocess.run(['git', 'status', '--porcelain'],
                           cwd=source_dir, capture_output=True, text=True, timeout=10)
@@ -175,9 +225,14 @@ def jump():
               
             # Only add existing files (skip deleted files)
             if os.path.exists(full_path) and os.path.isfile(full_path):
-              changed_files.append(file_path)
-              # Add to zip with proper path structure
-              zipf.write(full_path, file_path)
+              # Calculate hash and check if changed
+              file_hash = calculate_file_hash(full_path)
+              current_hashes[file_path] = file_hash
+              
+              # Add if new or hash changed
+              if not cache_valid or file_path not in previous_hashes or previous_hashes[file_path] != file_hash:
+                changed_files.append(file_path)
+                zipf.write(full_path, file_path)
         
         if changed_files:
           print(f'  Found {len(changed_files)} modified/new source file(s)')
@@ -191,9 +246,8 @@ def jump():
     print(f'  Warning: Git status failed: {str(e)}')
   print('')
   
-  # Step 5: Recurse through Build directory and add Intel ITP files
   # Step 5: Add Intel ITP debug files (.map, .cod, .efi, .pdb, etc.) from Build directory
-  # Use last successful sync time for incremental updates
+  # Use hash-based incremental sync
   itp_files = []
   if build_dir:
     print('Adding Intel ITP debug files from Build directory...')
@@ -207,20 +261,22 @@ def jump():
         _, ext = os.path.splitext(file)
         if ext.lower() in itp_extensions:
           full_path = os.path.join(root, file)
-          
-          # Incremental: skip if file not modified since last successful sync
-          if last_sync_time > 0:
-            file_mtime = os.path.getmtime(full_path)
-            if file_mtime <= last_sync_time:
-              skipped_count += 1
-              continue
-          
-          # Get relative path from source_dir
           rel_path = os.path.relpath(full_path, source_dir)
+          
+          # Calculate hash
+          file_hash = calculate_file_hash(full_path)
+          current_hashes[rel_path] = file_hash
+          
+          # Incremental: skip if hash unchanged
+          if cache_valid and rel_path in previous_hashes and previous_hashes[rel_path] == file_hash:
+            skipped_count += 1
+            continue
+          
+          # Add to zip
           itp_files.append(rel_path)
           zipf.write(full_path, rel_path)
     
-    if last_sync_time > 0:
+    if cache_valid:
       print(f'  Found {len(itp_files)} modified ITP file(s) (skipped {skipped_count} unchanged)')
     else:
       print(f'  Found {len(itp_files)} ITP debug file(s)')
@@ -228,6 +284,14 @@ def jump():
   
   # Close the zip file
   zipf.close()
+  
+  # Save updated hash cache to .bt directory
+  try:
+    os.makedirs(bt_dir, exist_ok=True)
+    with open(hash_cache_file, 'w') as f:
+      json.dump(current_hashes, f, indent=2)
+  except Exception as e:
+    print(f'Warning: Could not save hash cache: {e}')
   
   # Step 6: Add copy and unzip commands to script
   if changed_files or itp_files:
@@ -246,17 +310,13 @@ def jump():
       f.write(f'}}\n\n')
       
       f.write('# Cleanup\n')
-      f.write('Remove-Item -Path jump_sync.zip -Force\n')
+      f.write('Remove-Item -Path jump_sync.zip -Force\n\n')
       
-      # Write completion marker back to local machine via mapped drive
-      f.write('# Write completion marker back to local machine\n')
-      completion_path = completion_marker.replace('\\', '\\\\')
-      f.write(f'$completionData = @{{\n')
-      f.write(f'  timestamp = (Get-Date).ToString("o")\n')
-      f.write(f'  commit = "{local_commit if local_commit else "unknown"}"\n')
-      f.write(f'  files_synced = {len(changed_files) + len(itp_files)}\n')
-      f.write(f'}} | ConvertTo-Json\n')
-      f.write(f'$completionData | Out-File -FilePath "{completion_path}" -Encoding UTF8 -Force\n\n')
+      # Write sync timestamp back to local machine via mapped drive
+      f.write('# Write sync timestamp back to local machine (validates hash cache)\n')
+      sync_timestamp_path = sync_timestamp_file.replace('\\', '\\\\')
+      f.write(f'$timestamp = (Get-Date).ToString("o")\n')
+      f.write(f'$timestamp | Out-File -FilePath "{sync_timestamp_path}" -Encoding UTF8 -Force\n\n')
       
       f.write('Remove-Item -Path jump_sync.ps1 -Force\n\n')
       
