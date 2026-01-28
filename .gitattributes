@@ -1,0 +1,67 @@
+# Git attributes for consistent line endings and diff behavior
+# https://git-scm.com/docs/gitattributes
+
+# Auto detect text files and normalize line endings to LF
+* text=auto
+
+# Explicitly declare text files with LF line endings
+*.py text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.xml text eol=lf
+
+# Windows-specific scripts require CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=lf
+
+# Debian package files
+debian/rules text eol=lf
+debian/control text eol=lf
+debian/changelog text eol=lf
+debian/copyright text eol=lf
+debian/compat text eol=lf
+
+# Makefiles require tabs
+Makefile text eol=lf
+
+# Binary files (don't try to normalize)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.deb binary
+*.vsix binary
+*.zip binary
+*.tar.gz binary
+*.tgz binary
+
+# Git diffs
+*.py diff=python
+*.md diff=markdown
+*.json diff=json
+
+# Archive files
+*.zip -diff
+*.tar.gz -diff
+*.vsix -diff
+*.deb -diff
+
+# Generated files (consider marking as linguist-generated)
+__pycache__/** linguist-generated
+*.pyc linguist-generated
+node_modules/** linguist-generated
