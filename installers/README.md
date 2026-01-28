@@ -22,7 +22,7 @@ cd windows
 .\build-installer.ps1
 ```
 
-Output: `windows/output/BIOSTool-0.7.0-Setup.exe`
+Output: `windows/output/BIOSTool-1.0.0-Setup.exe`
 
 ### Building Debian Package
 ```bash
@@ -31,7 +31,7 @@ chmod +x build-deb.sh
 ./build-deb.sh
 ```
 
-Output: `linux/build/biostool_0.7.0-1_all.deb`
+Output: `linux/build/biostool_1.0.0-1_all.deb`
 
 ## What Gets Installed
 
@@ -39,29 +39,40 @@ All installers include:
 
 1. **BT Command-Line Tool**
    - Core Python scripts
-   - All command modules (build, clean, init, etc.)
-   - Helper scripts (bt.cmd for Windows)
+   - All command modules (attach, build, cleanup, config, create, etc.)
+   - Helper scripts (bt.cmd for Windows, bt.sh for Linux)
 
-2. **VS Code Extension** (optional)
+2. **GUI Application**
+   - Graphical user interface (btgui)
+   - Visual controls for all commands
+   - Built with Python tkinter
+
+3. **VS Code Extension**
    - Integrated development environment support
    - Command palette integration
-   - Configuration UI
+   - Interactive configuration UI
+   - Bundled BT tool copy
 
-3. **Documentation**
+4. **Documentation**
    - README.md
    - Command help files
 
 ## Version Management
 
+**Current Version:** V1.0
+
 Version is defined in multiple places and must be kept in sync:
 
-- `bt.py` - Line 16: `print('BIOS Tool V0.7')`
-- `README.md` - Current Version and Version History
-- `windows/biostool.iss` - `#define MyAppVersion "0.7.0"`
+- `README.md` - Current Version section and Version History table
+- `windows/biostool.iss` - `#define MyAppVersion "1.0.0"`
 - `linux/debian/changelog` - First entry
-- `.vscode-extension/package.json` - `"version": "0.7.0"`
+- `.vscode-extension/package.json` - `"version": "1.0.0"`
 
-When updating version, update all these files.
+**Recommended:** Use the `scripts/bump-version.py` script to update all versions consistently.
+
+```bash
+python scripts/bump-version.py 1.1.0
+```
 
 ## Prerequisites
 
@@ -73,9 +84,10 @@ When updating version, update all these files.
 ### Linux Build System
 - dpkg-dev
 - debhelper
-- dh-python
 - Python 3.7+
-- Node.js + npm (for VS Code extension)
+- Node.js + npm (optional, for building VS Code extension)
+
+**WSL Users:** The build script works in WSL on Windows
 
 ### User Runtime Requirements
 - Python 3.7 or later
