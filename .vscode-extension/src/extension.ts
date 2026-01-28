@@ -15,6 +15,41 @@ export function activate(context: vscode.ExtensionContext) {
 		return;
 	}
 	
+	// Check if repositories are configured, prompt if not
+	const fs = require('fs');
+	const path = require('path');
+	const userProfile = process.env.USERPROFILE || process.env.HOME;
+	
+	if (userProfile) {
+		const btDir = path.join(userProfile, '.bt');
+		const reposFile = path.join(btDir, 'repositories');
+		const repoFile = path.join(btDir, 'repo');
+		
+		// Check if either repositories or repo file exists and has content
+		let hasRepos = false;
+		if (fs.existsSync(reposFile)) {
+			const content = fs.readFileSync(reposFile, 'utf-8').trim();
+			hasRepos = content.length > 0;
+		}
+		if (!hasRepos && fs.existsSync(repoFile)) {
+			const content = fs.readFileSync(repoFile, 'utf-8').trim();
+			hasRepos = content.length > 0;
+		}
+		
+		// If no repositories configured, prompt user
+		if (!hasRepos) {
+			vscode.window.showInformationMessage(
+				'No BIOS repositories have been attached yet. Would you like to attach one or more now?',
+				'Yes', 'No'
+			).then(async (selection) => {
+				if (selection === 'Yes') {
+					// Execute the attach command
+					await vscode.commands.executeCommand('BIOSTool.attach');
+				}
+			});
+		}
+	}
+	
 	// Initialize components
 	const platformProvider = new PlatformTreeProvider(workspaceRoot);
 	const btRunner = new BTCommandRunner(workspaceRoot, context.extensionPath);

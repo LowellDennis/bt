@@ -1686,6 +1686,67 @@ class BTGui(QMainWindow):
         self.status_bar.showMessage('Discovering workspaces...')
         
         repos = self.discovery.get_repositories()
+        
+        # If no repositories found, prompt user to select one or more
+        if not repos:
+            result = QMessageBox.question(
+                self,
+                'No Repositories Found',
+                'No BIOS repositories have been attached yet.\n\n'
+                'Would you like to select repository directories now?',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if result == QMessageBox.StandardButton.Yes:
+                # Prompt for multiple repository selections
+                selected_repos = []
+                while True:
+                    repo_path = QFileDialog.getExistingDirectory(
+                        self,
+                        'Select BIOS Repository Directory',
+                        os.path.expanduser('~'),
+                        QFileDialog.Option.ShowDirsOnly
+                    )
+                    
+                    if repo_path:
+                        selected_repos.append(repo_path)
+                        
+                        # Ask if they want to add another
+                        add_more = QMessageBox.question(
+                            self,
+                            'Add Another Repository?',
+                            f'Added: {os.path.basename(repo_path)}\n\n'
+                            'Would you like to add another repository?',
+                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                        )
+                        
+                        if add_more == QMessageBox.StandardButton.No:
+                            break
+                    else:
+                        # User canceled
+                        break
+                
+                # Attach selected repositories
+                if selected_repos:
+                    cache_dir = os.path.join(os.path.expanduser('~'), '.bt')
+                    os.makedirs(cache_dir, exist_ok=True)
+                    repo_file = os.path.join(cache_dir, 'repositories')
+                    
+                    # Append to existing repos if any
+                    existing = []
+                    if os.path.exists(repo_file):
+                        with open(repo_file, 'r') as f:
+                            existing = [line.strip() for line in f if line.strip()]
+                    
+                    # Add new repos
+                    all_repos = existing + selected_repos
+                    with open(repo_file, 'w') as f:
+                        for repo in all_repos:
+                            f.write(f'{repo}\n')
+                    
+                    # Re-discover with new repos
+                    repos = self.discovery.get_repositories()
+        
         print(f"\n=== Discovering {len(repos)} repositories/worktrees ===")
         
         # Normalize all paths for comparison

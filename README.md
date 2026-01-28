@@ -50,7 +50,7 @@ BIOS Tool simplifies HPE Server BIOS development with:
 - Automatic BIOS worktree detection
 - Easy directory navigation with `bt top`
 
-**Git Integration**
+**Git/SVN Integration**
 - Automatic git worktree detection
 - Filtered status output (hides build artifacts)
 - Simplified source updates and merging
@@ -100,7 +100,7 @@ For detailed help: bt help <command>
 
 ### 1. Attach a Repository
 
-After cloning a BIOS repository with `git clone`, attach it to BT:
+After cloning a BIOS repository (using `git clone` or `svn checkout`), attach it to BT:
 
 ```bash
 cd /path/to/bios/repo
