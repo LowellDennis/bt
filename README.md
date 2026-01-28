@@ -1,19 +1,20 @@
 ![BIOS Tool Image](https://github.com/LowellDennis/bt/blob/main/BiosTool.jpg)
 
-### What is this repository for? ###
+# BIOS Tool (BT)
 
-* A tool for working with HPE Server BIOS source code.
-* Current Version is V1.0
+A suite of tools for working with HPE Server BIOS source code, including a command-line interface, GUI application, and VS Code extension.
 
-### How do I get set up? ###
+**Current Version:** V1.0
 
-#### Using Installers (Recommended)
+## Installation
+
+### Using Installers (Recommended)
 
 **Windows:**
-* Download `BIOSTool-<version>-Setup.exe` from releases
-* Run the installer and follow the prompts
-* Optionally install the VS Code extension during setup
-* The installer will add BT to your PATH automatically
+- Download `BIOSTool-<version>-Setup.exe` from releases
+- Run the installer and follow the prompts
+- Optionally install the VS Code extension during setup
+- The installer will add BT to your PATH automatically
 
 **Linux (Debian/Ubuntu):**
 ```bash
@@ -21,212 +22,187 @@ sudo dpkg -i biostool_<version>_all.deb
 sudo apt-get install -f  # Fix any dependencies
 ```
 
-#### Manual Installation from Source
+### Manual Installation
 
-* To get the source use:
+Clone the repository:
+```bash
+git clone git@github.com:LowellDennis/bt.git
 ```
-    git clone git@github.com:LowellDennis/bt.git
+
+Requirements:
+- Add the BT directory to your PATH
+- Python 2.7+ installed (Python 3+ recommended)
+  - Download from [python.org](https://www.python.org/)
+
+### Building Installers
+
+See [installers/README.md](installers/README.md) for instructions on building installers.
+
+## Features
+
+BIOS Tool simplifies HPE Server BIOS development with:
+
+**Minimal Setup**
+- Global settings apply to all worktrees (set once)
+- Only a few local settings per worktree
+
+**Smart Navigation**
+- Automatic BIOS worktree detection
+- Easy directory navigation with `bt top`
+
+**Git Integration**
+- Automatic git worktree detection
+- Filtered status output (hides build artifacts)
+- Simplified source updates and merging
+
+**Build Management**
+- Simple CLEAN and BUILD commands
+- Automatic log file capture
+- Smart filtering of ERROR and WARNING messages
+- Optional SMS/email alerts on build completion
+
+**Remote Debugging**
+- Jump Station sync for Intel ITP debugging
+- Hash-based incremental sync (only changed files)
+- Mapped drive + RDP workflow (no SSH required)
+
+## Commands
+
 ```
-* Make sure the directory where the clone is made is in your path
-* To run you will also need to have Python installed (at least V2.7, but 3+ is suggested)
-    * You can get it [here](https://www.python.org/)
-
-#### Building Installers
-
-See [installers/README.md](installers/README.md) for instructions on building installers for Windows and Linux.
-
-### What does it do? ###
-
-BIOS Tool attempts to simplify HPE Server BIOS development.
-
-* Requires minimal setup
-    * Global settings only need to be set once
-        * These apply to all BIOS worktrees
-    * There are only a few local settings
-        * These apply only to the current BIOS worktree
-* Makes navigating in the BIOS worktree a bit easier
-    * It automatically detects the top of the BIOS worktree
-    * FUTURE: Use INF files to help find files and navigate
-* It automatically detects git worktrees
-* Makes working with version control software a bit easier
-    * Filters out extraneous "unversioned" files in status output
-    * Allows source code to be updated easily
-    * FUTURE: Assists in committing changes
-* It implements simple CLEAN, and BUILD commands
-    * Command output is:
-        * Automatically captured into log files
-        * Output is scrubbed for ERROR and WARNING messages
-            * Only relevant output is shown on the screen
-                * Logfiles can be used if more details are needed
-* Can even send you a text message when the build completes
-
-### How do I use it? ###
-~~~
 usage: bt <command> [param1 [param2 [...]]]
-  where command is one of:
-      attach - Add a BIOS repository to the list of repositories.
-       build - Build a BIOS for the current BIOS repository or worktree.
-     cleanup - Clean the current BIOS repository or worktree.
-      config - Get or set BIOS tool configuration settings.
-      create - Creates a new BIOS worktree and adds it to the list of worktrees.
-      detach - Remove a BIOS repository from the list of repositories.
-       fetch - Updates a local repository or worktree with changes from its remote location.
-        init - Initialize the local settings for the current BIOS repository or worktree.
-        jump - Sync source and build artifacts to a Jump Station for remote debugging.
-       merge - Merge updates from an upstream location into a local repository or worktree.
-        move - Move a BIOS worktree.
-        push - Push updates from a local repository or worktree to its remote location.
-      remove - Deletes a BIOS worktree and removes it from the list of worktrees.
-      select - Select a BIOS repository from the list of repositories.
-      status - Get the status of the current BIOS repository or worktree.
-         top - Change directory to the top of the BIOS repository or worktree.
-         use - Switch to a different BIOS repository or worktree.
-   worktrees - Lists all worktrees with their repository, branch, and purpose.
 
-NOTE: command can be abbreviated as far as it does not conflict with
-      another command abbreviation
+Available commands:
+  attach    - Add a BIOS repository to the list
+  build     - Build a BIOS for the current repository or worktree
+  cleanup   - Clean the current repository or worktree
+  config    - Get or set configuration settings
+  create    - Create a new BIOS worktree
+  detach    - Remove a BIOS repository from the list
+  fetch     - Update local repository/worktree from remote
+  init      - Initialize local settings for current worktree
+  jump      - Sync source and build artifacts to Jump Station
+  merge     - Merge upstream changes into local repository/worktree
+  move      - Move a BIOS worktree
+  push      - Push local changes to remote
+  remove    - Delete a BIOS worktree
+  select    - Select a BIOS repository from the list
+  status    - Get status of current repository or worktree
+  top       - Change directory to repository/worktree root
+  use       - Switch to a different repository or worktree
+  worktrees - List all worktrees with details
 
-For detailed help on a particular command use the "bt help <command>"
-~~~
-### How do I get started? ###
+Note: Commands can be abbreviated (e.g., 'b' for build, 'st' for status)
 
-Once you have cloned a BIOS repository using 'git clone'
-and have the BIOS tool downloaded somewhere in your path, this is how you use it!
+For detailed help: bt help <command>
+```
 
-* CD to the directory where the BIOS source code repo was cloned
+## Quick Start
 
-You are now ready to attach repositories to the BIOS tool
-~~~
-           bt attach
-~~~
-* Now you can create BIOS worktrees for your development needs.
-~~~
-            bt create [/repo <path>] <branch> <worktree> [<commit-ish>]
-~~~
-*  /repo: Path to the pepository from which to create BIOS worktree
-   * (default is currently selected repository)
-*  branch: Branch name for new BIOS worktree
-*  worktree: Base directory of new BIOS worktree
-*  commit-ish: Commit ID, tag, or branch on which the new worktree is to be based
-   * (default is HEAD)
+### 1. Attach a Repository
 
-The next thing you will need to do is initialize the tool settings for the worktree.
-~~~
-             cd <worktree>
-             bt init <name>
-~~~
-* name: BIOS platform name for current BIOS worktree
-   * This is something like U66, A55, or R13
-   * Will attempt to autodetect platform directory, CPU name and CPU vendor
-   * It will also initialize alert, release, and warnings to off if not already set
+After cloning a BIOS repository with `git clone`, attach it to BT:
 
-If you want to be notified when a BIOS build is completed.
-Do the following
-~~~
-            bt config email <text-email>
-            bt config alert on
-~~~
-| Carrier           | <text-email> setting                                 |
+```bash
+cd /path/to/bios/repo
+bt attach
+```
+
+### 2. Create a Worktree
+
+```bash
+bt create [/repo <path>] <branch> <worktree> [<commit-ish>]
+```
+
+Parameters:
+- `/repo <path>` - Repository path (default: current selected repo)
+- `<branch>` - Branch name for new worktree
+- `<worktree>` - Base directory for new worktree
+- `<commit-ish>` - Starting commit/tag/branch (default: HEAD)
+
+### 3. Initialize Worktree
+
+```bash
+cd <worktree>
+bt init <platform-name>
+```
+
+Example platforms: U66, A55, R13
+
+This will:
+- Auto-detect platform directory, CPU name, and vendor
+- Initialize alert, release, and warnings settings
+
+### 4. Build
+
+```bash
+bt build
+```
+
+### Optional: Build Notifications
+
+Configure SMS/email alerts for build completion:
+
+```bash
+bt config email <text-email-address>
+bt config alert on
+```
+
+**Carrier Text-Email Formats:**
+
+| Carrier           | Email Format                                         |
 |-------------------|------------------------------------------------------|
-| Alltel            | [insert 10-digit number]@message.alltel.com          |
-| AT&T              | [insert 10-digit number]@txt.att.net                 |
-| Boost Mobile      | [insert 10-digit number]@myboostmobile.com           |
-| T-Mobile          | [insert 10-digit number]@tmomail.net                 |
-| U.S. Cellular     | [insert 10-digit number]@email.uscc.net              |
-| Verizon           | [insert 10-digit number]@vtext.com                   |
-| Virgin Mobile     | [insert 10-digit number]@vmobl.com                   |
-| Republic Wireless | [insert 10-digital number]@text.republicwireless.com |
-|-------------------|------------------------------------------------------|
+| AT&T              | [10-digit-number]@txt.att.net                        |
+| T-Mobile          | [10-digit-number]@tmomail.net                        |
+| Verizon           | [10-digit-number]@vtext.com                          |
+| Boost Mobile      | [10-digit-number]@myboostmobile.com                  |
+| U.S. Cellular     | [10-digit-number]@email.uscc.net                     |
+| Virgin Mobile     | [10-digit-number]@vmobl.com                          |
+| Republic Wireless | [10-digit-number]@text.republicwireless.com          |
 
-To see the global and local settings for a BIOS source tree
-~~~
-            bt config
-~~~
+**Important:** Outlook and your command shell must run at the same privilege level for notifications to work.
 
-One More Thing: For the email/text notification to work
-* Outlook and your command shell have to be run at the same privilege level.
-* If your command shell is run with administrator privileges
-   * Outlook will also have to be run with administrator privileges.
+### View Settings
 
-### How to extend ###
-The BIOS tool is easily extended as it is hierarchical by design.
-The main program is 'bt.cmd'
+```bash
+bt config  # Show all global and local settings
+```
 
-* 'bt.cmd' runs the 'bt.py' python script
-* 'bt.py' scans the 'bios-tree' directory for command subdirectories
-* A command subdirectory contains:
-    * 'terse.txt'    - a terse    description of what the command does
-    * 'details.txt'  - a detailed description of what the command does
-    * 'needs.vcs'    - (if present) indicates need of vcs services
-    * '*command*.py' - the code that carries out the command
-        * The name of the subdirectory and the .py file must be the same (case sensitive)
-        * Also, the name of the main function in the .py file must be this name (case sensitive)
-    * any other files the command may need
-        * For example, filter.txt is used by CLEAN and BUILD to filter out false error messages,
-        * 'send.ps1' is used by BUILD to send completion alerts. 
+## Extending BT
 
-### Who do I talk to? ###
- This repo is owned and maintained by [Lowell Dennis](mailto:lowell.dennis@hpe.com?subject="BIOS Tool")
+BT is easily extensible with a hierarchical design:
 
-### Version History ###
-| Version | Explanation                                                                            |
-|---------|----------------------------------------------------------------------------------------|
-| V1.0    | Major command rename, Jump Station sync redesign, and improved table formatting       |
-|         | - Renamed destroy → remove (single letter 'r')                                         |
-|         | - Renamed switch → use (single letter 'u')                                             |
-|         | - Renamed clean → cleanup (two letters 'cl')                                           |
-|         | - Renamed pull → fetch (single letter 'f')                                             |
-|         | - Redesigned 'jump' command for syncing to Jump Station via mapped drive + RDP        |
-|         |   * Replaced SSH automation with simpler manual RDP workflow                           |
-|         |   * Simplified configuration from 4 parameters to 1 (destination path only)            |
-|         |   * Removed all SSH dependencies (OpenSSH, PuTTY, network auth)                        |
-|         |   * Files created in repo root for multi-repo support (not .bt/)                       |
-|         |   * Smart git sync embedded in script (fetch only when commits differ)                 |
-|         |   * Completion tracking enables incremental sync (18K+ files → changed only)           |
-|         |   * ZIP_STORED for 10x faster creation, 7-Zip extraction with progress                 |
-|         |   * Fixed git status parsing bug (was truncating first character)                      |
-|         | - Added 'worktrees' command (single letter 'w') to list all worktrees with info       |
-|         | - Added purpose field for worktrees (create /purpose or config purpose)               |
-|         | - Improved table formatting with aligned columns and headers for 'use' and 'worktrees'|
-|         | - Text wrapping with alignment for long purpose descriptions                           |
-|         | - Now 11 commands have single/double-letter abbreviations (up from 3)                 |
-|         | - Updated all documentation, GUI, and VS Code extension                                |
-|---------|----------------------------------------------------------------------------------------|
-| V0.9	  | Bug fixes and Linux/macOS improvements                                                 |
-|         | - Fixed NoFilter outputting "None" repeatedly during clean command timeouts            |
-|         | - Added bt.sh for native Linux/macOS shell support                                     |
-|         | - Added Linux/macOS support to post-command script generation                          |
-|---------|----------------------------------------------------------------------------------------|
-| V0.8	  | GUI improvements                                                                       |
-|---------|----------------------------------------------------------------------------------------|
-| V0.7	  | Professional installers for Windows and Linux                                          |
-|         | - Added Inno Setup installer for Windows with VS Code extension auto-install           |
-|         | - Added Debian package for Linux distributions                                         |
-|         | - Automated build scripts for both platforms                                           |
-|---------|----------------------------------------------------------------------------------------|
-| V0.6	  | VS Code extension and ITP debugger support                                             |
-|         | - Added VS Code extension with full command support and interactive config UI          |
-|         | - Added ITP debugger support with /itp flag                                            |
-|         | - Standardized boolean settings                                                        |
-|---------|----------------------------------------------------------------------------------------|
-| V0.5	  | Build progress improvements                                                            |
-|         | - Added build progress bar with module count tracking                                  |
-|         | - Dynamic adjustment when actual count exceeds estimate                                |
-|         | - Cache actual module counts for accurate subsequent builds                            |
-|         | - Fixed worktree detection (top command now works in worktrees)                        |
-|         | - Organized GUI and VS Code extension into separate folders                            |
-|---------|----------------------------------------------------------------------------------------|
-| V0.4	  | Big update                                                                             |
-|         | - Revamped help text to be more consistent and informative                             |
-|         | - Added use of wakepy to keep from sleeping during long operations                     | 
-|         | - Updated send.ps1 to work with new version of Outlook (no COM)                        | 
-|         | - Added support for uploading BIOS image after build with iLO and OpenBMC              |
-|---------|----------------------------------------------------------------------------------------|
-| V0.3	  | Fixed a few minor bugs                                                                 |
-|---------|----------------------------------------------------------------------------------------|
-| V0.2	  | Release to team                                                                        |
-|         | - Fixed worktree commands                                                              |
-|         | - Cleaned up help details                                                              |
-|---------|----------------------------------------------------------------------------------------|
-| V0.1	  | Original Release                                                                       |
-|---------|----------------------------------------------------------------------------------------|
+**Structure:**
+1. Main program: `bt.cmd` (Windows) or `bt.sh` (Linux/macOS)
+2. Python entry: `bt.py` scans for command subdirectories
+3. Each command subdirectory contains:
+   - `terse.txt` - Brief command description
+   - `details.txt` - Detailed command documentation
+   - `needs.vcs` - (optional) Indicates VCS requirements
+   - `<command>.py` - Command implementation
+   - Additional support files (e.g., `filter.txt`, `send.ps1`)
+
+**Requirements:**
+- Command subdirectory and Python file names must match (case-sensitive)
+- Main function in Python file must match this name
+
+## Contact
+
+Maintained by [Lowell Dennis](mailto:lowell.dennis@hpe.com?subject="BIOS Tool")
+
+## Version History
+
+| Version  | Changes                                                          |
+|----------|------------------------------------------------------------------|
+| **V1.0** | Command renames (destroy→remove, switch→use, clean→cleanup,      |
+|          | pull→fetch), Jump Station redesign (mapped drive+RDP, hash-based |
+|          | sync), worktrees command, improved table formatting,             |
+|          | GUI/extension updates                                            |
+| **V0.9** | Linux/macOS support, bug fixes                                   |
+| **V0.8** | GUI improvements                                                 |
+| **V0.7** | Windows/Linux installers                                         |
+| **V0.6** | VS Code extension, ITP debugger support                          |
+| **V0.5** | Build progress tracking                                          |
+| **V0.4** | Help system improvements, wake lock, BMC upload support          |
+| **V0.3** | Bug fixes                                                        |
+| **V0.2** | Team release, worktree fixes                                     |
+| **V0.1** | Original release                                                 |
