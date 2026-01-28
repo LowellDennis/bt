@@ -1,0 +1,4 @@
+# Linux build artifacts (keep only the .deb package)
+build/biostool-*/
+build/*.buildinfo
+build/*.changes
