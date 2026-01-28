@@ -10,7 +10,7 @@ omit =
     .docs/*
     .githooks/*
     .packaging/*
-    installers/*
+    .installers/*
     .vscode-extension/*
 
 [report]

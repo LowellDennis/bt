@@ -110,7 +110,7 @@ black .
 ### Windows Installer
 
 ```powershell
-cd installers/windows
+cd .installers/windows
 .\build-installer.ps1
 ```
 

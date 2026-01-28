@@ -16,14 +16,14 @@ A suite of tools for working with HPE Server BIOS source code, including a comma
 ### Using Installers (Recommended)
 
 **Windows:**
-- Download `installers/windows/output/BIOSTool-1.0.0-Setup.exe`
+- Download `.installers/windows/output/BIOSTool-1.0.0-Setup.exe`
 - Run the installer and follow the prompts
 - The installer includes the command-line tool, GUI, and VS Code extension
 - BT will be added to your PATH automatically
 
 **Linux (Debian/Ubuntu):**
 ```bash
-sudo dpkg -i installers/linux/build/biostool_1.0.0-1_all.deb
+sudo dpkg -i .installers/linux/build/biostool_1.0.0-1_all.deb
 sudo apt-get install -f  # Fix any dependencies
 ```
 

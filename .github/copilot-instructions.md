@@ -193,12 +193,12 @@ If editing manually (not recommended):
    "version": "1.X.0"
    ```
 
-4. **installers/windows/biostool.iss**:
+4. **.installers/windows/biostool.iss**:
    ```ini
    #define MyAppVersion "1.X.0"
    ```
 
-5. **installers/linux/debian/changelog**:
+5. **.installers/linux/debian/changelog**:
    ```
    biostool (1.X.0-1) stable; urgency=low
    ```
@@ -227,11 +227,11 @@ If editing manually (not recommended):
 
 **Build Process:**
 ```powershell
-cd installers/windows
+cd .installers/windows
 .\build-installer.ps1
 ```
 
-**Output:** `installers/windows/output/BIOSTool-X.Y.Z-Setup.exe`
+**Output:** `.installers/windows/output/BIOSTool-X.Y.Z-Setup.exe`
 
 **What It Installs:**
 - Base CLI tool → `C:\Program Files\BIOSTool\`
@@ -255,16 +255,16 @@ cd installers/windows
 
 **Build Process:**
 ```bash
-cd installers/linux
+cd .installers/linux
 ./build-deb.sh
 ```
 
 **Can build on Windows via WSL:**
 ```powershell
-wsl -d Ubuntu -- bash -c "cd /mnt/d/path/to/bt/installers/linux && ./build-deb.sh"
+wsl -d Ubuntu -- bash -c "cd /mnt/d/path/to/bt/.installers/linux && ./build-deb.sh"
 ```
 
-**Output:** `installers/linux/build/biostool_X.Y.Z-1_all.deb`
+**Output:** `.installers/linux/build/biostool_X.Y.Z-1_all.deb`
 
 **What It Installs:**
 - Base CLI tool → `/opt/biostool/`
@@ -328,7 +328,7 @@ When adding tests:
 
 ### Developer Documentation
 
-#### installers/README.md
+#### .installers/README.md
 - Installer build instructions
 - Prerequisites
 - Platform-specific notes
@@ -603,12 +603,12 @@ Remote BIOS build infrastructure for resource-intensive builds.
 - `CHANGELOG.md`: Version history
 
 ### Build Outputs
-- Windows: `installers/windows/output/*.exe`
-- Linux: `installers/linux/build/*.deb`
+- Windows: `.installers/windows/output/*.exe`
+- Linux: `.installers/linux/build/*.deb`
 - Extension: `.vscode-extension/*.vsix`
 
 ### Scripts
-- `scripts/bump-version.py`: Update version everywhere
-- `scripts/verify-version.py`: Check version consistency
-- `installers/windows/build-installer.ps1`: Build Windows installer
-- `installers/linux/build-deb.sh`: Build Linux installer
+- `.scripts/bump-version.py`: Update version everywhere
+- `.scripts/verify-version.py`: Check version consistency
+- `.installers/windows/build-installer.ps1`: Build Windows installer
+- `.installers/linux/build-deb.sh`: Build Linux installer

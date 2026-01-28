@@ -110,12 +110,12 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build Windows Installer
         run: |
-          cd installers/windows
+          cd .installers/windows
           .\build-installer.ps1
       - uses: actions/upload-artifact@v3
         with:
           name: windows-installer
-          path: installers/windows/output/*.exe
+          path: .installers/windows/output/*.exe
 
   build-linux:
     runs-on: ubuntu-latest
@@ -125,13 +125,13 @@ jobs:
         run: sudo apt-get install dpkg-dev debhelper dh-python
       - name: Build Debian Package
         run: |
-          cd installers/linux
+          cd .installers/linux
           chmod +x build-deb.sh
           ./build-deb.sh
       - uses: actions/upload-artifact@v3
         with:
           name: debian-package
-          path: installers/linux/build/*.deb
+          path: .installers/linux/build/*.deb
 ```
 
 ## Testing Installers

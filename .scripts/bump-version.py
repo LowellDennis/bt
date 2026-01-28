@@ -30,13 +30,13 @@ VERSION_FILES = [
         ]
     },
     {
-        'file': 'installers/windows/biostool.iss',
+        'file': '.installers/windows/biostool.iss',
         'patterns': [
             (r'#define MyAppVersion "\d+\.\d+\.\d+"', r'#define MyAppVersion "{}"'),
         ]
     },
     {
-        'file': 'installers/linux/debian/changelog',
+        'file': '.installers/linux/debian/changelog',
         'patterns': [
             (r'^biostool \(\d+\.\d+\.\d+-1\)', r'biostool ({}-1)'),
         ]

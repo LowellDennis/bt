@@ -189,8 +189,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Release Links
 
 - [1.0.0] - Current release
-- Windows Installer: `installers/windows/output/BIOSTool-1.0.0-Setup.exe`
-- Linux Installer: `installers/linux/build/biostool_1.0.0-1_all.deb`
+- Windows Installer: `.installers/windows/output/BIOSTool-1.0.0-Setup.exe`
+- Linux Installer: `.installers/linux/build/biostool_1.0.0-1_all.deb`
 
 ## Version Format
 

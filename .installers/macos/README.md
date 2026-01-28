@@ -31,7 +31,7 @@ which pkgbuild
 ### Build .pkg Installer
 
 ```bash
-cd installers/macos
+cd .installers/macos
 ./build-pkg.sh
 ```
 
@@ -40,7 +40,7 @@ Output: `build/BIOSTool-X.Y.Z.pkg`
 ### Build .dmg Disk Image
 
 ```bash
-cd installers/macos
+cd .installers/macos
 ./build-dmg.sh
 ```
 
@@ -99,7 +99,7 @@ sudo /usr/local/opt/biostool/uninstall.sh
 ## Structure
 
 ```
-installers/macos/
+.installers/macos/
 ├── build-pkg.sh          # Build .pkg installer
 ├── build-dmg.sh          # Build .dmg disk image
 ├── scripts/

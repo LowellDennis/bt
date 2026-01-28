@@ -340,7 +340,7 @@ bt/
 │   └── needs.vcs (optional)
 ├── .gui/                    # GUI tool
 ├── .vscode-extension/       # VS Code extension
-├── installers/              # Installer scripts
+├── .installers/             # Installer scripts
 ├── .scripts/                # Utility scripts
 ├── .tests/                  # Test suite
 ├── .docs/                   # Documentation
@@ -359,8 +359,8 @@ python scripts/bump-version.py 1.2.0
 This updates:
 - README.md
 - .vscode-extension/package.json
-- installers/windows/biostool.iss
-- installers/linux/debian/changelog
+- .installers/windows/biostool.iss
+- .installers/linux/debian/changelog
 
 ### Commit Messages
 

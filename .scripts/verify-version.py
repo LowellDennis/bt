@@ -25,12 +25,12 @@ VERSION_CHECKS = [
         'name': 'README (header)'
     },
     {
-        'file': 'installers/windows/biostool.iss',
+        'file': '.installers/windows/biostool.iss',
         'pattern': r'#define MyAppVersion "(\d+\.\d+\.\d+)"',
         'name': 'Windows Installer'
     },
     {
-        'file': 'installers/linux/debian/changelog',
+        'file': '.installers/linux/debian/changelog',
         'pattern': r'^biostool \((\d+\.\d+\.\d+)-1\)',
         'name': 'Debian Changelog'
     },
