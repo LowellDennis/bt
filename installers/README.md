@@ -22,7 +22,7 @@ cd windows
 .\build-installer.ps1
 ```
 
-Output: `windows/output/BIOSTool-1.0.0-Setup.exe`
+Output: `windows/output/BIOSTool-1.1.0-Setup.exe`
 
 ### Building Debian Package
 ```bash
@@ -31,7 +31,7 @@ chmod +x build-deb.sh
 ./build-deb.sh
 ```
 
-Output: `linux/build/biostool_1.0.0-1_all.deb`
+Output: `linux/build/biostool_1.1.0-1_all.deb`
 
 ## What Gets Installed
 
@@ -59,7 +59,7 @@ All installers include:
 
 ## Version Management
 
-**Current Version:** V1.0
+**Current Version:** V1.1
 
 Version is defined in multiple places and must be kept in sync:
 
@@ -151,7 +151,7 @@ jobs:
 2. Test in Docker or VM:
    ```bash
    docker run -it ubuntu:22.04
-   apt-get update && apt-get install -y ./biostool_0.7.0-1_all.deb
+   apt-get update && apt-get install -y ./biostool_1.1.0-1_all.deb
    bt --help
    ```
 3. Verify:
@@ -173,8 +173,8 @@ jobs:
 - Package managers (future)
 
 ### File Naming Convention
-- Windows: `BIOSTool-<version>-Setup.exe` (e.g., `BIOSTool-0.7.0-Setup.exe`)
-- Debian: `biostool_<version>-<revision>_all.deb` (e.g., `biostool_0.7.0-1_all.deb`)
+- Windows: `BIOSTool-<version>-Setup.exe` (e.g., `BIOSTool-1.1.0-Setup.exe`)
+- Debian: `biostool_<version>-<revision>_all.deb` (e.g., `biostool_1.1.0-1_all.deb`)
 
 ## Troubleshooting
 

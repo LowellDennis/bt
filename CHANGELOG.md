@@ -5,6 +5,79 @@ All notable changes to BIOS Tool (BT) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-01-28
+
+### Added
+- **Comprehensive Documentation Website** (Sphinx-based)
+  - Getting started guide
+  - Complete command reference
+  - Configuration guide
+  - Development guide
+  - API documentation structure
+  - Auto-deployment to GitHub Pages
+- **GUI Standalone Packaging** (PyInstaller)
+  - Windows and Linux build scripts
+  - ~50-100MB standalone executables
+  - No Python installation required for end users
+- **Pre-commit Hooks System**
+  - Version consistency checks before commits
+  - Quick test runs on pre-commit
+  - Full test suite on pre-push
+  - Installation scripts for Windows and Linux
+- **Code Coverage Infrastructure**
+  - Codecov integration
+  - Multi-platform testing (Windows, Linux)
+  - Multi-Python version support (3.8, 3.9, 3.10, 3.11)
+  - Coverage badges in README
+- **macOS Installer Support**
+  - .pkg package builder
+  - .dmg disk image builder
+  - Auto-install VS Code extension
+  - Uninstall script included
+- **Project Organization**
+  - Testing framework with pytest
+  - Unit and integration test templates
+  - Shared test fixtures (conftest.py)
+  - Documentation directory structure
+- **GitHub Templates**
+  - Bug report template
+  - Feature request template
+  - Question template
+  - Pull request template with checklist
+- **CONTRIBUTING.md**
+  - Comprehensive contributor guidelines
+  - Development setup instructions
+  - Code style standards
+  - Testing guidelines
+  - Pull request process
+- **Code Quality Standards**
+  - .editorconfig for consistent formatting
+  - .gitattributes for line ending consistency
+  - Flake8, Black, isort integration
+  - Security scanning with Bandit
+  - Dependency safety checks
+
+### Changed
+- **Enhanced CI/CD Workflows**
+  - Automated testing workflow
+  - Code quality checks (linting, formatting, security)
+  - Documentation build and deployment
+  - Dependency update monitoring
+- **Version Management**
+  - Automated version bump script
+  - Version consistency verification script
+  - All version references now centrally managed
+- **README Improvements**
+  - Added status badges (tests, coverage, code quality)
+  - Added Python version badge
+  - Improved documentation links
+
+### Infrastructure
+- Complete test infrastructure ready for implementation
+- Pre-commit hooks to catch issues early
+- Professional development workflow established
+- Multi-platform installer support (Windows, Linux, macOS)
+
 ## [1.0.0] - 2026-01-28
 
 ### Added

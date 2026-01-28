@@ -9,7 +9,7 @@
 
 A suite of tools for working with HPE Server BIOS source code, including a command-line interface, GUI application, and VS Code extension.
 
-**Current Version:** V1.0
+**Current Version:** V1.1
 
 ## Installation
 
@@ -203,16 +203,16 @@ Maintained by [Lowell Dennis](mailto:lowell.dennis@hpe.com?subject="BIOS Tool")
 
 | Version  | Changes                                                          |
 |----------|------------------------------------------------------------------|
-| **V1.0** | Command renames (destroy→remove, switch→use, clean→cleanup,      |
+| **V1.1** | Command renames (destroy→remove, switch→use, clean→cleanup,      |
 |          | pull→fetch), Jump Station redesign (mapped drive+RDP, hash-based |
 |          | sync), worktrees command, improved table formatting,             |
 |          | GUI/extension updates                                            |
-| **V0.9** | Linux/macOS support, bug fixes                                   |
-| **V0.8** | GUI improvements                                                 |
-| **V0.7** | Windows/Linux installers                                         |
-| **V0.6** | VS Code extension, ITP debugger support                          |
-| **V0.5** | Build progress tracking                                          |
-| **V0.4** | Help system improvements, wake lock, BMC upload support          |
-| **V0.3** | Bug fixes                                                        |
-| **V0.2** | Team release, worktree fixes                                     |
-| **V0.1** | Original release                                                 |
+| **V1.1** | Linux/macOS support, bug fixes                                   |
+| **V1.1** | GUI improvements                                                 |
+| **V1.1** | Windows/Linux installers                                         |
+| **V1.1** | VS Code extension, ITP debugger support                          |
+| **V1.1** | Build progress tracking                                          |
+| **V1.1** | Help system improvements, wake lock, BMC upload support          |
+| **V1.1** | Bug fixes                                                        |
+| **V1.1** | Team release, worktree fixes                                     |
+| **V1.1** | Original release                                                 |

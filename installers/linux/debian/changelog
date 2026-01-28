@@ -1,4 +1,4 @@
-biostool (1.0.0-1) unstable; urgency=medium
+biostool (1.1.0-1) unstable; urgency=medium
 
   * New upstream release 1.0.0
   * Major command rename for better abbreviation support

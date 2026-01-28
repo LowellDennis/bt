@@ -2,7 +2,7 @@
 ; Requires Inno Setup 6.0 or later: https://jrsoftware.org/isinfo.php
 
 #define MyAppName "HPE Server BIOS Tool"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1"
 #define MyAppPublisher "HPE"
 #define MyAppURL "https://github.com/LowellDennis/bt"
 #define MyAppExeName "bt.cmd"
