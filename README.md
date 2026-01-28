@@ -11,16 +11,21 @@ A suite of tools for working with HPE Server BIOS source code, including a comma
 ### Using Installers (Recommended)
 
 **Windows:**
-- Download `BIOSTool-<version>-Setup.exe` from releases
+- Download `installers/windows/output/BIOSTool-1.0.0-Setup.exe`
 - Run the installer and follow the prompts
-- Optionally install the VS Code extension during setup
-- The installer will add BT to your PATH automatically
+- The installer includes the command-line tool, GUI, and VS Code extension
+- BT will be added to your PATH automatically
 
 **Linux (Debian/Ubuntu):**
 ```bash
-sudo dpkg -i biostool_<version>_all.deb
+sudo dpkg -i installers/linux/build/biostool_1.0.0-1_all.deb
 sudo apt-get install -f  # Fix any dependencies
 ```
+
+Both installers include all three components:
+- Command-line tool (`bt`)
+- Graphical user interface (`btgui`)
+- VS Code extension
 
 ### Manual Installation
 
