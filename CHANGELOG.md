@@ -48,6 +48,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive contributor guidelines
   - Development setup instructions
   - Code style standards
+
+### Changed
+- **Directory Structure Optimization**
+  - Renamed `docs/` → `.docs/` for faster command discovery
+  - Renamed `tests/` → `.tests/` for faster command discovery
+  - Renamed `packaging/` → `.packaging/` for faster command discovery
+  - Renamed `scripts/` → `.scripts/` for faster command discovery
+  - Renamed `installers/` → `.installers/` for faster command discovery
+  - Updated all references across documentation, scripts, and CI/CD workflows
+  - bt.py now skips directories with `.` prefix during command scanning
+- **Documentation Improvements**
+  - Clarified `terse.txt` must be exactly one line (no options mentioned)
+  - Simplified README.md to reference CHANGELOG.md instead of duplicating version history
+  - Updated all documentation to reflect new directory structure
   - Testing guidelines
   - Pull request process
 - **Code Quality Standards**
