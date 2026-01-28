@@ -69,11 +69,11 @@ def jump():
   if opts['clean']:
     return clean_jump_cache()
 
-  # Get jumpstation configuration
+  # Get jump station configuration
   jump_info = GetJumpStationInfo()
   if not jump_info:
     ErrorMessage('Jump station not configured.\n' +
-                 'Set using: bt config jumpstation <destination-path>')
+                 'Set using: bt config jump <destination-path>')
     # DOES NOT RETURN
 
   # Remote path on the jump station

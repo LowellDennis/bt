@@ -14,13 +14,13 @@ OPTIONS:
   /clean       - Clear jump station hash cache (forces full sync on next run)
 
 CONFIGURATION:
-  The 'jumpstation' local setting must be configured with the destination path:
+  The 'jump' local setting must be configured with the destination path:
     <remote-path>
   
   The remote-path is an absolute path on the Jump Station where files will sync.
   
   Example:
-    bt config jumpstation "C:\Users\Administrator\Desktop\GNext"
+    bt config jump "C:\Users\Administrator\Desktop\GNext"
 
 WORKFLOW:
   1. Run 'bt jump' on your development machine
@@ -73,7 +73,7 @@ REQUIREMENTS:
 
 EXAMPLES:
   # Configure jump station destination
-  bt config jumpstation "C:\Users\Administrator\Desktop\GNext"
+  bt config jump "C:\Users\Administrator\Desktop\GNext"
 
   # Generate sync files (creates jump_sync.ps1 and jump_sync.zip in repo root)
   bt jump
